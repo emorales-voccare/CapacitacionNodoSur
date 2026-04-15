@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: capacitacion-nodo-sur
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: NODE_ENV
+        value: production
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        sync: false
+      - key: GOOGLE_PRIVATE_KEY
+        sync: false
+      - key: GOOGLE_SPREADSHEET_ID
+        sync: false
+      - key: TASKS_SHEET_NAME
+        sync: false
+      - key: FINALIZADOS_SHEET_NAME
+        sync: false

@@ -1,0 +1,477 @@
+import { useState, useEffect, useCallback } from 'react'
+import InlineDropdown from '../components/InlineDropdown'
+
+const PAIS_OPTIONS    = ['Todos', 'General', 'Ecuador', 'Argentina', 'Chile', 'Paraguay']
+const PRIORIDAD_FILTER = ['Todos', 'Alta', 'Baja', 'Hecho']
+
+const FIELD_OPTIONS = {
+  prioridad:             ['Alta', 'Baja', 'Hecho'],
+  libreria_intranet:     ['Pendiente', 'Hecho'],
+  documentacion_inicial: ['Pendiente', 'En curso', '✅ Finalizado'],
+  finalizado:            ['SÍ', 'NO'],
+}
+
+const PRIORITY_ORDER = { 'Alta': 0, 'Baja': 1, 'Hecho': 2, '': 3 }
+
+function isFullyCompleted(task) {
+  return (
+    task.prioridad             === 'Hecho' &&
+    task.libreria_intranet     === 'Hecho' &&
+    task.documentacion_inicial === '✅ Finalizado' &&
+    task.finalizado            === 'SÍ'
+  )
+}
+
+function rowBorderColor(prioridad) {
+  if (prioridad === 'Alta')  return 'border-l-4 border-l-red-400'
+  if (prioridad === 'Baja')  return 'border-l-4 border-l-yellow-400'
+  if (prioridad === 'Hecho') return 'border-l-4 border-l-green-400'
+  return 'border-l-4 border-l-transparent'
+}
+
+function DelayBadge({ dias }) {
+  if (dias === null || dias === undefined) return <span className="text-gray-300 text-xs">—</span>
+  if (dias <= 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">En fecha</span>
+  return <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">{dias}d</span>
+}
+
+function LinkCell({ url, title, icon }) {
+  if (!url) return <span className="text-gray-200 text-xs">—</span>
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" title={title}
+       className="text-indigo-400 hover:text-indigo-600 transition-colors text-sm">
+      {icon}
+    </a>
+  )
+}
+
+function ConfirmModal({ task, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <div className="text-2xl mb-3 text-center">✅</div>
+        <h3 className="text-base font-bold text-gray-900 text-center mb-2">Tarea completada</h3>
+        <p className="text-sm text-gray-600 text-center mb-1">
+          Todos los campos están finalizados.
+        </p>
+        <p className="text-sm font-medium text-gray-800 text-center mb-5 px-2">
+          "{task.tarea}"
+        </p>
+        <p className="text-sm text-gray-500 text-center mb-5">
+          ¿Mover a <strong>Finalizados</strong>?
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Dejar aquí
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+          >
+            Mover a Finalizados
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ReopenModal({ task, onConfirm, onCancel }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <div className="text-2xl mb-3 text-center">🔄</div>
+        <h3 className="text-base font-bold text-gray-900 text-center mb-2">Reabrir tarea</h3>
+        <p className="text-sm text-gray-600 text-center mb-1">
+          La tarea volverá a la lista de pendientes.
+        </p>
+        <p className="text-sm font-medium text-gray-800 text-center mb-5 px-2">
+          "{task.tarea}"
+        </p>
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          >
+            Mover a Pendientes
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tabla compartida ────────────────────────────────────────────────────────
+
+function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) {
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center py-16 text-gray-400">
+        <div className="text-4xl mb-3">{isFinalizados ? '🎉' : '📋'}</div>
+        <p className="font-medium">{isFinalizados ? 'No hay tareas finalizadas' : 'No hay tareas pendientes'}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+            <th className="text-left px-3 py-2 w-5"></th>
+            <th className="text-left px-3 py-2">Tarea</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">País</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Fecha</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Retraso</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Lib. Intranet</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Documentación</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Finalizado</th>
+            <th className="px-3 py-2 text-center whitespace-nowrap">Links</th>
+            {isFinalizados && <th className="px-3 py-2"></th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {tasks.map(task => (
+            <tr
+              key={task.rowIndex}
+              className={`${rowBorderColor(task.prioridad)} hover:bg-gray-50/60 transition-colors
+                ${isFinalizados ? 'opacity-70' : ''}`}
+            >
+              {/* Prioridad */}
+              <td className="px-3 py-2 text-center">
+                {isFinalizados
+                  ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium whitespace-nowrap">{task.prioridad}</span>
+                  : <InlineDropdown
+                      value={task.prioridad}
+                      options={FIELD_OPTIONS.prioridad}
+                      onSave={v => onFieldChange(task, 'prioridad', v)}
+                    />
+                }
+              </td>
+
+              {/* Tarea */}
+              <td className="px-3 py-2 max-w-xs">
+                <span className="text-gray-800 font-medium text-sm leading-snug">{task.tarea}</span>
+              </td>
+
+              {/* País */}
+              <td className="px-3 py-2 text-center">
+                <span className="text-xs text-gray-600 font-medium">{task.pais || '—'}</span>
+              </td>
+
+              {/* Fecha */}
+              <td className="px-3 py-2 text-center whitespace-nowrap">
+                <span className="text-xs text-gray-500">{task.fecha_mail || '—'}</span>
+              </td>
+
+              {/* Retraso */}
+              <td className="px-3 py-2 text-center">
+                <DelayBadge dias={task.dias_retraso} />
+              </td>
+
+              {/* Librería intranet */}
+              <td className="px-3 py-2 text-center">
+                {isFinalizados
+                  ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">{task.libreria_intranet}</span>
+                  : <InlineDropdown
+                      value={task.libreria_intranet}
+                      options={FIELD_OPTIONS.libreria_intranet}
+                      onSave={v => onFieldChange(task, 'libreria_intranet', v)}
+                    />
+                }
+              </td>
+
+              {/* Documentación */}
+              <td className="px-3 py-2 text-center">
+                {isFinalizados
+                  ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium whitespace-nowrap">{task.documentacion_inicial}</span>
+                  : <InlineDropdown
+                      value={task.documentacion_inicial}
+                      options={FIELD_OPTIONS.documentacion_inicial}
+                      onSave={v => onFieldChange(task, 'documentacion_inicial', v)}
+                    />
+                }
+              </td>
+
+              {/* Finalizado */}
+              <td className="px-3 py-2 text-center">
+                {isFinalizados
+                  ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">{task.finalizado}</span>
+                  : <InlineDropdown
+                      value={task.finalizado}
+                      options={FIELD_OPTIONS.finalizado}
+                      onSave={v => onFieldChange(task, 'finalizado', v)}
+                    />
+                }
+              </td>
+
+              {/* Links */}
+              <td className="px-3 py-2">
+                <div className="flex items-center gap-2 justify-center">
+                  <LinkCell url={task.mail}     title="Mail"           icon="✉️" />
+                  <LinkCell url={task.mail2}    title="Carpeta Drive"  icon="📁" />
+                  <LinkCell url={task.documento} title="Documento"     icon="📄" />
+                </div>
+              </td>
+
+              {/* Reabrir (solo en Finalizados) */}
+              {isFinalizados && (
+                <td className="px-3 py-2 text-right">
+                  <button
+                    onClick={() => onReopen(task)}
+                    className="text-xs text-indigo-500 hover:text-indigo-700 font-medium whitespace-nowrap transition-colors"
+                  >
+                    Reabrir
+                  </button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Página principal ─────────────────────────────────────────────────────────
+
+export default function Tareas() {
+  const [tab, setTab]                   = useState('pendientes')
+  const [pendientes, setPendientes]     = useState([])
+  const [finalizados, setFinalizados]   = useState([])
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState(null)
+  const [lastSync, setLastSync]         = useState(null)
+  const [paisFilter, setPaisFilter]     = useState('Todos')
+  const [prioFilter, setPrioFilter]     = useState('Todos')
+  const [archiveTask, setArchiveTask]   = useState(null)  // tarea esperando confirmación de archivado
+  const [reopenTask, setReopenTask]     = useState(null)  // tarea esperando confirmación de reapertura
+  const [actionLoading, setActionLoading] = useState(false)
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [pRes, fRes] = await Promise.all([
+        fetch('/api/tareas'),
+        fetch('/api/tareas/finalizados'),
+      ])
+      if (!pRes.ok || !fRes.ok) throw new Error('Error al conectar con Google Sheets')
+      const [p, f] = await Promise.all([pRes.json(), fRes.json()])
+      setPendientes(p)
+      setFinalizados(f)
+      setLastSync(new Date())
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchAll() }, [fetchAll])
+
+  async function handleFieldChange(task, field, value) {
+    const res = await fetch(`/api/tareas/${task.rowIndex}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ field, value }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Error al guardar')
+
+    // Actualiza el estado local con la tarea actualizada
+    setPendientes(prev => prev.map(t => t.rowIndex === task.rowIndex ? data.task : t))
+
+    // Si todos los campos están completos, pide confirmación para archivar
+    if (data.readyToArchive) {
+      setArchiveTask(data.task)
+    }
+  }
+
+  async function handleArchiveConfirm() {
+    if (!archiveTask || actionLoading) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/tareas/${archiveTask.rowIndex}/archive`, { method: 'POST' })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error)
+      }
+      // Refresca ambas listas para que los rowIndex sean consistentes
+      await fetchAll()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+      setArchiveTask(null)
+    }
+  }
+
+  async function handleReopenConfirm() {
+    if (!reopenTask || actionLoading) return
+    setActionLoading(true)
+    try {
+      const res = await fetch(`/api/tareas/finalizados/${reopenTask.rowIndex}/reopen`, { method: 'POST' })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error)
+      }
+      await fetchAll()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+      setReopenTask(null)
+    }
+  }
+
+  // Filtros aplicados a pendientes
+  const filteredPendientes = pendientes
+    .filter(t => paisFilter === 'Todos' || t.pais === paisFilter)
+    .filter(t => prioFilter === 'Todos' || t.prioridad === prioFilter)
+    .sort((a, b) => {
+      const pa = PRIORITY_ORDER[a.prioridad] ?? 3
+      const pb = PRIORITY_ORDER[b.prioridad] ?? 3
+      if (pa !== pb) return pa - pb
+      return (b.dias_retraso ?? -Infinity) - (a.dias_retraso ?? -Infinity)
+    })
+
+  const lastSyncText = lastSync
+    ? lastSync.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
+    : null
+
+  return (
+    <div className="p-5 max-w-7xl mx-auto">
+
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Tareas</h2>
+          {lastSyncText && (
+            <p className="text-xs text-gray-400 mt-0.5">Sincronizado a las {lastSyncText}</p>
+          )}
+        </div>
+        <button
+          onClick={fetchAll}
+          disabled={loading}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+        >
+          <span className={loading ? 'animate-spin inline-block' : ''}>↻</span>
+          Actualizar
+        </button>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-3">×</button>
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-xl w-fit">
+        {[
+          { key: 'pendientes', label: `Pendientes${pendientes.length ? ` (${pendientes.length})` : ''}` },
+          { key: 'finalizados', label: `Finalizados${finalizados.length ? ` (${finalizados.length})` : ''}` },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              tab === key
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Filtros (solo en Pendientes) */}
+      {tab === 'pendientes' && (
+        <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-500">País</label>
+            <select
+              value={paisFilter}
+              onChange={e => setPaisFilter(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              {PAIS_OPTIONS.map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-medium text-gray-500">Prioridad</label>
+            <select
+              value={prioFilter}
+              onChange={e => setPrioFilter(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            >
+              {PRIORIDAD_FILTER.map(p => <option key={p}>{p}</option>)}
+            </select>
+          </div>
+          {(paisFilter !== 'Todos' || prioFilter !== 'Todos') && (
+            <button
+              onClick={() => { setPaisFilter('Todos'); setPrioFilter('Todos') }}
+              className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Contenido */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20 text-gray-400">
+          <span className="animate-spin mr-2 text-xl">↻</span>
+          Cargando desde Google Sheets...
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {tab === 'pendientes' ? (
+            <TareasTable
+              tasks={filteredPendientes}
+              onFieldChange={handleFieldChange}
+            />
+          ) : (
+            <TareasTable
+              tasks={finalizados}
+              isFinalizados
+              onReopen={setReopenTask}
+            />
+          )}
+        </div>
+      )}
+
+      {/* Modal: confirmar archivado */}
+      {archiveTask && (
+        <ConfirmModal
+          task={archiveTask}
+          onConfirm={handleArchiveConfirm}
+          onCancel={() => setArchiveTask(null)}
+        />
+      )}
+
+      {/* Modal: confirmar reapertura */}
+      {reopenTask && (
+        <ReopenModal
+          task={reopenTask}
+          onConfirm={handleReopenConfirm}
+          onCancel={() => setReopenTask(null)}
+        />
+      )}
+    </div>
+  )
+}

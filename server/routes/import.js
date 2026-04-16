@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { pool } = require('../db')
+const { getPool } = require('../db')
 
 const COUNTRY_MAP = {
   'argentina': 'argentina',
@@ -90,7 +90,7 @@ router.post('/confirm', async (req, res) => {
     return res.status(400).json({ error: 'No hay datos para importar' })
   }
 
-  const client = await pool.connect()
+  const client = await (await getPool()).connect()
   try {
     await client.query('BEGIN')
 

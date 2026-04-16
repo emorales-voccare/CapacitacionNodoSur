@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { pool } = require('../db')
+const { getPool } = require('../db')
 
 const COUNTRIES = ['argentina', 'chile', 'ecuador', 'peru', 'bolivia', 'paraguay', 'uruguay']
 
@@ -17,7 +17,7 @@ function validateCountryValues(body) {
 // GET /api/coordinadores
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM coordinadores ORDER BY nombre')
+    const result = await (await getPool()).query('SELECT * FROM coordinadores ORDER BY nombre')
     res.json(result.rows)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -36,7 +36,7 @@ router.post('/', async (req, res) => {
   if (err) return res.status(400).json({ error: err })
 
   try {
-    const result = await pool.query(
+    const result = await (await getPool()).query(
       `INSERT INTO coordinadores (nombre, argentina, chile, ecuador, peru, bolivia, paraguay, uruguay)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
@@ -61,7 +61,7 @@ router.put('/:id', async (req, res) => {
   if (err) return res.status(400).json({ error: err })
 
   try {
-    const result = await pool.query(
+    const result = await (await getPool()).query(
       `UPDATE coordinadores
        SET nombre = $1, argentina = $2, chile = $3, ecuador = $4,
            peru = $5, bolivia = $6, paraguay = $7, uruguay = $8,
@@ -86,7 +86,7 @@ router.delete('/:id', async (req, res) => {
   const { id } = req.params
 
   try {
-    const result = await pool.query('DELETE FROM coordinadores WHERE id = $1', [Number(id)])
+    const result = await (await getPool()).query('DELETE FROM coordinadores WHERE id = $1', [Number(id)])
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Coordinador no encontrado' })

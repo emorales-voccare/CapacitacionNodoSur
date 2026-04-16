@@ -22,10 +22,15 @@ export default function Coordinadores() {
   }
 
   async function load() {
-    const res = await fetch('/api/coordinadores')
-    const data = await res.json()
-    setCoordinadores(data)
-    setLoading(false)
+    try {
+      const res = await fetch('/api/coordinadores')
+      const data = await res.json()
+      setCoordinadores(Array.isArray(data) ? data : [])
+    } catch {
+      setCoordinadores([])
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])

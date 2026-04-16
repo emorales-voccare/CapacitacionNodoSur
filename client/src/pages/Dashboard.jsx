@@ -43,7 +43,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetch('/api/coordinadores')
       .then(r => r.json())
-      .then(rows => { setData(rows); setLoading(false) })
+      .then(rows => { setData(Array.isArray(rows) ? rows : []); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 

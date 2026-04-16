@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 const BADGE_COLORS = {
   'Alta':           'bg-red-100 text-red-700 border-red-200',
@@ -15,6 +15,17 @@ export default function InlineDropdown({ value, options, onSave, disabled = fals
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [current, setCurrent] = useState(value)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef(null)
+
+  function handleOpen() {
+    if (disabled || saving) return
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setPos({ top: rect.bottom + 4, left: rect.left })
+    }
+    setOpen(o => !o)
+  }
 
   async function handleSelect(newValue) {
     if (newValue === current) { setOpen(false); return }
@@ -36,7 +47,8 @@ export default function InlineDropdown({ value, options, onSave, disabled = fals
   return (
     <div className="relative inline-block">
       <button
-        onClick={() => !disabled && !saving && setOpen(o => !o)}
+        ref={btnRef}
+        onClick={handleOpen}
         disabled={disabled || saving}
         className={`text-xs px-2 py-0.5 rounded-full border font-medium transition-opacity whitespace-nowrap
           ${colorClass}
@@ -47,8 +59,11 @@ export default function InlineDropdown({ value, options, onSave, disabled = fals
 
       {open && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute z-20 top-full mt-1 left-0 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-max">
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div
+            className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-max"
+            style={{ top: pos.top, left: pos.left }}
+          >
             {options.map(opt => (
               <button
                 key={opt}

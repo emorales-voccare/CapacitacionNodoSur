@@ -253,6 +253,7 @@ export default function Tareas() {
   const [lastSync, setLastSync]         = useState(null)
   const [paisFilter, setPaisFilter]     = useState('Todos')
   const [prioFilter, setPrioFilter]     = useState('Todos')
+  const [sortBy, setSortBy]             = useState('prioridad')
   const [archiveTask, setArchiveTask]   = useState(null)  // tarea esperando confirmación de archivado
   const [reopenTask, setReopenTask]     = useState(null)  // tarea esperando confirmación de reapertura
   const [actionLoading, setActionLoading] = useState(false)
@@ -339,6 +340,18 @@ export default function Tareas() {
     .filter(t => paisFilter === 'Todos' || t.pais === paisFilter)
     .filter(t => prioFilter === 'Todos' || t.prioridad === prioFilter)
     .sort((a, b) => {
+      if (sortBy === 'fecha') {
+        const parse = s => {
+          if (!s) return Infinity
+          const [d, m, y] = s.split('/').map(Number)
+          return y > 1900 ? new Date(y, m - 1, d).getTime() : Infinity
+        }
+        return parse(a.fecha_mail) - parse(b.fecha_mail)
+      }
+      if (sortBy === 'retraso') {
+        return (b.dias_retraso ?? -Infinity) - (a.dias_retraso ?? -Infinity)
+      }
+      // default: prioridad
       const pa = PRIORITY_ORDER[a.prioridad] ?? 3
       const pb = PRIORITY_ORDER[b.prioridad] ?? 3
       if (pa !== pb) return pa - pb
@@ -355,7 +368,7 @@ export default function Tareas() {
       {/* Header */}
       <div className="mb-4 flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-900">Tareas</h2>
+          <h2 className="text-xl font-bold text-gray-900">Tareas pendientes</h2>
           {lastSyncText && (
             <p className="text-xs text-gray-400 mt-0.5">Sincronizado a las {lastSyncText}</p>
           )}
@@ -400,7 +413,7 @@ export default function Tareas() {
 
       {/* Filtros (solo en Pendientes) */}
       {tab === 'pendientes' && (
-        <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
             <label className="text-xs font-medium text-gray-500">País</label>
             <select
@@ -429,6 +442,27 @@ export default function Tareas() {
               Limpiar filtros
             </button>
           )}
+
+          <div className="flex items-center gap-1.5 ml-auto">
+            <span className="text-xs text-gray-400 font-medium">Ordenar:</span>
+            {[
+              { key: 'prioridad', label: 'Prioridad' },
+              { key: 'fecha',     label: 'Fecha' },
+              { key: 'retraso',   label: '↓ Retraso' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                  sortBy === key
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -439,7 +473,7 @@ export default function Tareas() {
           Cargando desde Google Sheets...
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200">
           {tab === 'pendientes' ? (
             <TareasTable
               tasks={filteredPendientes}

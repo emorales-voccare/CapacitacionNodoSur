@@ -3,18 +3,20 @@ import Dashboard from './pages/Dashboard'
 import Coordinadores from './pages/Coordinadores'
 import Tareas from './pages/Tareas'
 
-const NAV = [
-  { key: 'dashboard',      label: 'Dashboard',      icon: '📊' },
-  { key: 'coordinadores',  label: 'Coordinadores',  icon: '👥' },
-  { key: 'tareas',         label: 'Tareas',          icon: '✓'  },
-]
-
 const PAGES = { dashboard: Dashboard, coordinadores: Coordinadores, tareas: Tareas }
 
 export default function App() {
-  const [page, setPage] = useState('dashboard')
+  const [page, setPage] = useState('tareas')
+  const [coordOpen, setCoordOpen] = useState(false)
 
-  const Page = PAGES[page] || Dashboard
+  const Page = PAGES[page] || Tareas
+
+  function goTo(p) {
+    setPage(p)
+    if (p === 'coordinadores' || p === 'dashboard') setCoordOpen(true)
+  }
+
+  const coordActive = page === 'coordinadores' || page === 'dashboard'
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100">
@@ -26,20 +28,59 @@ export default function App() {
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
-          {NAV.map(({ key, label, icon }) => (
+          {/* Tareas */}
+          <button
+            onClick={() => goTo('tareas')}
+            className={`w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              page === 'tareas'
+                ? 'bg-indigo-600 text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <span>✓</span>
+            Tareas
+          </button>
+
+          {/* Coordinadores — colapsable */}
+          <div>
             <button
-              key={key}
-              onClick={() => setPage(key)}
+              onClick={() => setCoordOpen(o => !o)}
               className={`w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                page === key
+                coordActive
                   ? 'bg-indigo-600 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               }`}
             >
-              <span>{icon}</span>
-              {label}
+              <span>👥</span>
+              <span className="flex-1">Coordinadores</span>
+              <span className="text-xs opacity-60">{coordOpen ? '▲' : '▼'}</span>
             </button>
-          ))}
+
+            {coordOpen && (
+              <div className="ml-3 mt-1 space-y-0.5 border-l border-gray-700 pl-3">
+                <button
+                  onClick={() => goTo('coordinadores')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    page === 'coordinadores'
+                      ? 'bg-indigo-500 text-white font-medium'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  Lista
+                </button>
+                <button
+                  onClick={() => goTo('dashboard')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    page === 'dashboard'
+                      ? 'bg-indigo-500 text-white font-medium'
+                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                  }`}
+                >
+                  Dashboard
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="px-5 py-4 border-t border-gray-700 text-xs text-gray-500">

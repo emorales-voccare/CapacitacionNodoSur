@@ -90,8 +90,9 @@ router.post('/confirm', async (req, res) => {
     return res.status(400).json({ error: 'No hay datos para importar' })
   }
 
-  const client = await (await getPool()).connect()
+  let client
   try {
+    client = await (await getPool()).connect()
     await client.query('BEGIN')
 
     if (mode === 'replace') {
@@ -118,10 +119,10 @@ router.post('/confirm', async (req, res) => {
     await client.query('COMMIT')
     res.json({ success: true, imported: coordinadores.length, mode })
   } catch (err) {
-    await client.query('ROLLBACK')
+    if (client) await client.query('ROLLBACK').catch(() => {})
     res.status(500).json({ error: err.message })
   } finally {
-    client.release()
+    if (client) client.release()
   }
 })
 

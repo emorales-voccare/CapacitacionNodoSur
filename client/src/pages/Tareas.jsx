@@ -2,16 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import InlineDropdown from '../components/InlineDropdown'
 
 const PAIS_OPTIONS    = ['Todos', 'General', 'Ecuador', 'Argentina', 'Chile', 'Paraguay']
-const PRIORIDAD_FILTER = ['Todos', 'Alta', 'Baja', 'Hecho']
+const PRIORIDAD_FILTER = ['Todos', 'Urgente', 'Alta', 'Baja', 'Hecho']
 
 const FIELD_OPTIONS = {
-  prioridad:             ['Alta', 'Baja', 'Hecho'],
+  prioridad:             ['Urgente', 'Alta', 'Baja', 'Hecho'],
   libreria_intranet:     ['Pendiente', 'Hecho'],
   documentacion_inicial: ['Pendiente', 'En curso', '✅ Finalizado'],
   finalizado:            ['SÍ', 'NO'],
 }
 
-const PRIORITY_ORDER = { 'Alta': 0, 'Baja': 1, 'Hecho': 2, '': 3 }
+const PRIORITY_ORDER = { 'Urgente': 0, 'Alta': 1, 'Baja': 2, 'Hecho': 3, '': 4 }
 
 function isFullyCompleted(task) {
   return (
@@ -23,9 +23,10 @@ function isFullyCompleted(task) {
 }
 
 function rowBorderColor(prioridad) {
-  if (prioridad === 'Alta')  return 'border-l-4 border-l-red-400'
-  if (prioridad === 'Baja')  return 'border-l-4 border-l-yellow-400'
-  if (prioridad === 'Hecho') return 'border-l-4 border-l-green-400'
+  if (prioridad === 'Urgente') return 'border-l-4 border-l-red-600'
+  if (prioridad === 'Alta')    return 'border-l-4 border-l-red-300'
+  if (prioridad === 'Baja')    return 'border-l-4 border-l-yellow-400'
+  if (prioridad === 'Hecho')   return 'border-l-4 border-l-green-400'
   return 'border-l-4 border-l-transparent'
 }
 
@@ -127,27 +128,27 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-            <th className="text-left px-3 py-2 w-5"></th>
-            <th className="text-left px-3 py-2">Tarea</th>
-            <th className="px-3 py-2 text-center whitespace-nowrap">País</th>
-            <th className="px-3 py-2 text-center whitespace-nowrap">Fecha</th>
-            <th className="px-3 py-2 text-center whitespace-nowrap">Retraso</th>
-            <th className="px-3 py-2 text-center whitespace-nowrap">Lib. Intranet</th>
-            <th className="px-3 py-2 text-center whitespace-nowrap">Documentación</th>
-            <th className="px-3 py-2 text-center whitespace-nowrap">Finalizado</th>
-            <th className="px-3 py-2 text-center whitespace-nowrap">Links</th>
-            {isFinalizados && <th className="px-3 py-2"></th>}
+            <th className="text-left px-2 py-1.5 w-4"></th>
+            <th className="text-left px-2 py-1.5">Tarea</th>
+            <th className="px-2 py-1.5 text-center whitespace-nowrap">País</th>
+            <th className="px-2 py-1.5 text-center whitespace-nowrap">Fecha</th>
+            <th className="px-2 py-1.5 text-center whitespace-nowrap">Retraso</th>
+            <th className="px-2 py-1.5 text-center whitespace-nowrap">Lib. Intranet</th>
+            <th className="px-2 py-1.5 text-center whitespace-nowrap">Documentación</th>
+            <th className="px-2 py-1.5 text-center whitespace-nowrap">Finalizado</th>
+            <th className="px-2 py-1.5 text-center whitespace-nowrap">Links</th>
+            {isFinalizados && <th className="px-2 py-1.5"></th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
           {tasks.map(task => (
             <tr
               key={task.rowIndex}
-              className={`${rowBorderColor(task.prioridad)} hover:bg-gray-50/60 transition-colors
+              className={`${rowBorderColor(task.prioridad)} hover:bg-gray-50/60 transition-colors text-xs
                 ${isFinalizados ? 'opacity-70' : ''}`}
             >
               {/* Prioridad */}
-              <td className="px-3 py-2 text-center">
+              <td className="px-2 py-1 text-center">
                 {isFinalizados
                   ? <span className="text-xs px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium whitespace-nowrap">{task.prioridad}</span>
                   : <InlineDropdown
@@ -159,12 +160,12 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
               </td>
 
               {/* Tarea */}
-              <td className="px-3 py-2 max-w-xs">
+              <td className="px-2 py-1 max-w-xs">
                 <span className="text-gray-800 font-medium text-sm leading-snug">{task.tarea}</span>
               </td>
 
               {/* País */}
-              <td className="px-3 py-2 text-center">
+              <td className="px-2 py-1 text-center">
                 <span className="text-xs text-gray-600 font-medium">{task.pais || '—'}</span>
               </td>
 
@@ -174,12 +175,12 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
               </td>
 
               {/* Retraso */}
-              <td className="px-3 py-2 text-center">
+              <td className="px-2 py-1 text-center">
                 <DelayBadge dias={task.dias_retraso} />
               </td>
 
               {/* Librería intranet */}
-              <td className="px-3 py-2 text-center">
+              <td className="px-2 py-1 text-center">
                 {isFinalizados
                   ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">{task.libreria_intranet}</span>
                   : <InlineDropdown
@@ -191,7 +192,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
               </td>
 
               {/* Documentación */}
-              <td className="px-3 py-2 text-center">
+              <td className="px-2 py-1 text-center">
                 {isFinalizados
                   ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium whitespace-nowrap">{task.documentacion_inicial}</span>
                   : <InlineDropdown
@@ -203,7 +204,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
               </td>
 
               {/* Finalizado */}
-              <td className="px-3 py-2 text-center">
+              <td className="px-2 py-1 text-center">
                 {isFinalizados
                   ? <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200 font-medium">{task.finalizado}</span>
                   : <InlineDropdown
@@ -215,7 +216,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
               </td>
 
               {/* Links */}
-              <td className="px-3 py-2">
+              <td className="px-2 py-1">
                 <div className="flex items-center gap-2 justify-center">
                   <LinkCell url={task.mail}     title="Mail"           icon="✉️" />
                   <LinkCell url={task.mail2}    title="Carpeta Drive"  icon="📁" />
@@ -225,7 +226,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
 
               {/* Reabrir (solo en Finalizados) */}
               {isFinalizados && (
-                <td className="px-3 py-2 text-right">
+                <td className="px-2 py-1 text-right">
                   <button
                     onClick={() => onReopen(task)}
                     className="text-xs text-indigo-500 hover:text-indigo-700 font-medium whitespace-nowrap transition-colors"
@@ -363,7 +364,7 @@ export default function Tareas() {
     : null
 
   return (
-    <div className="p-5 max-w-7xl mx-auto">
+    <div className="p-3 max-w-7xl mx-auto">
 
       {/* Header */}
       <div className="mb-4 flex items-center justify-between gap-4">
@@ -448,7 +449,6 @@ export default function Tareas() {
             {[
               { key: 'prioridad', label: 'Prioridad' },
               { key: 'fecha',     label: 'Fecha' },
-              { key: 'retraso',   label: '↓ Retraso' },
             ].map(({ key, label }) => (
               <button
                 key={key}

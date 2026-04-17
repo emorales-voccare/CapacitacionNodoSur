@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 
 const BADGE_COLORS = {
+  'Urgente':        'bg-red-600 text-white border-red-600',
   'Alta':           'bg-red-100 text-red-700 border-red-200',
   'Baja':           'bg-yellow-100 text-yellow-700 border-yellow-200',
   'Hecho':          'bg-green-100 text-green-700 border-green-200',

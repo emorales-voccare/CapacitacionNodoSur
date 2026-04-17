@@ -44,6 +44,26 @@ async function initDB() {
       updated_at TIMESTAMPTZ DEFAULT NOW()
     )
   `)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS doc_folders (
+      id         SERIAL PRIMARY KEY,
+      nombre     TEXT NOT NULL,
+      icono      TEXT DEFAULT '📁',
+      orden      INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS doc_items (
+      id         SERIAL PRIMARY KEY,
+      folder_id  INTEGER NOT NULL REFERENCES doc_folders(id) ON DELETE CASCADE,
+      nombre     TEXT NOT NULL,
+      url        TEXT NOT NULL,
+      tipo       TEXT DEFAULT '🔗',
+      orden      INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
 }
 
 module.exports = { getPool, initDB }

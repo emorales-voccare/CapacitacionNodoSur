@@ -7,6 +7,7 @@ const { initDB } = require('./db')
 const coordinadoresRouter = require('./routes/coordinadores')
 const importRouter = require('./routes/import')
 const tareasRouter = require('./routes/tareas')
+const documentacionRouter = require('./routes/documentacion')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -17,6 +18,7 @@ app.use(express.json())
 app.use('/api/coordinadores', coordinadoresRouter)
 app.use('/api/import', importRouter)
 app.use('/api/tareas', tareasRouter)
+app.use('/api/documentacion', documentacionRouter)
 
 if (process.env.NODE_ENV === 'production') {
   const distPath = path.join(__dirname, '../client/dist')

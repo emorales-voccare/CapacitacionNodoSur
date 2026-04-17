@@ -2,14 +2,16 @@ import { useState } from 'react'
 import Dashboard from './pages/Dashboard'
 import Coordinadores from './pages/Coordinadores'
 import Tareas from './pages/Tareas'
+import Documentacion from './pages/Documentacion'
 
-const PAGES = { dashboard: Dashboard, coordinadores: Coordinadores, tareas: Tareas }
+const PAGES = { dashboard: Dashboard, coordinadores: Coordinadores, tareas: Tareas, documentacion: Documentacion }
 
 export default function App() {
   const [page, setPage] = useState('tareas')
   const [coordOpen, setCoordOpen] = useState(false)
 
   const Page = PAGES[page] || Tareas
+
 
   function goTo(p) {
     setPage(p)
@@ -83,7 +85,22 @@ export default function App() {
           </div>
         </nav>
 
-        <div className="px-5 py-4 border-t border-gray-700 text-xs text-gray-500">
+        {/* Documentación — siempre al fondo */}
+        <div className="p-3 border-t border-gray-700">
+          <button
+            onClick={() => goTo('documentacion')}
+            className={`w-full text-left flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              page === 'documentacion'
+                ? 'bg-indigo-600 text-white'
+                : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+            }`}
+          >
+            <span>📂</span>
+            Documentación
+          </button>
+        </div>
+
+        <div className="px-5 py-3 border-t border-gray-700 text-xs text-gray-500">
           v1.0 · Fase 1
         </div>
       </aside>

@@ -243,6 +243,110 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
   )
 }
 
+// ─── Modal nueva tarea ────────────────────────────────────────────────────────
+
+const PAIS_CREATE = ['', 'General', 'Ecuador', 'Argentina', 'Chile', 'Paraguay']
+
+function NuevaTareaModal({ onClose, onCreated }) {
+  const [tarea,      setTarea]      = useState('')
+  const [pais,       setPais]       = useState('')
+  const [prioridad,  setPrioridad]  = useState('Alta')
+  const [fecha,      setFecha]      = useState('')
+  const [saving,     setSaving]     = useState(false)
+  const [error,      setError]      = useState('')
+
+  async function handleSave() {
+    if (!tarea.trim()) { setError('La tarea es requerida'); return }
+    setSaving(true)
+    setError('')
+    try {
+      // Convertir fecha de YYYY-MM-DD a DD/MM/YYYY para Sheets
+      const fechaSheets = fecha
+        ? fecha.split('-').reverse().join('/')
+        : ''
+      const res = await fetch('/api/tareas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tarea: tarea.trim(), pais, prioridad, fecha_mail: fechaSheets }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al crear')
+      onCreated()
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 className="text-base font-bold text-gray-900 mb-4">Nueva tarea</h3>
+
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Tarea <span className="text-red-400">*</span></label>
+            <textarea
+              autoFocus
+              value={tarea}
+              onChange={e => setTarea(e.target.value)}
+              rows={2}
+              placeholder="Descripción de la tarea..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Prioridad</label>
+              <select
+                value={prioridad}
+                onChange={e => setPrioridad(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              >
+                {['Urgente', 'Alta', 'Baja'].map(p => <option key={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">País</label>
+              <select
+                value={pais}
+                onChange={e => setPais(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              >
+                {PAIS_CREATE.map(p => <option key={p} value={p}>{p || '—'}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={e => setFecha(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+          </div>
+        </div>
+
+        {error && <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
+
+        <div className="flex justify-end gap-3 mt-5">
+          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">Cancelar</button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          >
+            {saving ? 'Guardando...' : 'Crear tarea'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Tareas() {
@@ -255,9 +359,10 @@ export default function Tareas() {
   const [paisFilter, setPaisFilter]     = useState('Todos')
   const [prioFilter, setPrioFilter]     = useState('Todos')
   const [sortBy, setSortBy]             = useState('prioridad')
-  const [archiveTask, setArchiveTask]   = useState(null)  // tarea esperando confirmación de archivado
-  const [reopenTask, setReopenTask]     = useState(null)  // tarea esperando confirmación de reapertura
+  const [archiveTask, setArchiveTask]   = useState(null)
+  const [reopenTask, setReopenTask]     = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [showNewTask, setShowNewTask]   = useState(false)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -374,14 +479,22 @@ export default function Tareas() {
             <p className="text-xs text-gray-400 mt-0.5">Sincronizado a las {lastSyncText}</p>
           )}
         </div>
-        <button
-          onClick={fetchAll}
-          disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-        >
-          <span className={loading ? 'animate-spin inline-block' : ''}>↻</span>
-          Actualizar
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowNewTask(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            + Nueva tarea
+          </button>
+          <button
+            onClick={fetchAll}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          >
+            <span className={loading ? 'animate-spin inline-block' : ''}>↻</span>
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -504,6 +617,14 @@ export default function Tareas() {
           task={reopenTask}
           onConfirm={handleReopenConfirm}
           onCancel={() => setReopenTask(null)}
+        />
+      )}
+
+      {/* Modal: nueva tarea */}
+      {showNewTask && (
+        <NuevaTareaModal
+          onClose={() => setShowNewTask(false)}
+          onCreated={() => { setShowNewTask(false); fetchAll() }}
         />
       )}
     </div>

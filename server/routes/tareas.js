@@ -1,6 +1,6 @@
 const express = require('express')
 const router = express.Router()
-const { getSheetValues, updateSheetCell, moveRow } = require('../sheets')
+const { getSheetValues, updateSheetCell, moveRow, appendRow } = require('../sheets')
 
 const TASKS_SHEET   = () => process.env.TASKS_SHEET_NAME   || 'Trabajo pendiente'
 const FIN_SHEET     = () => process.env.FINALIZADOS_SHEET_NAME || 'Finalizados'
@@ -83,6 +83,29 @@ function isFullyCompleted(task) {
     task.finalizado            === 'SÍ'
   )
 }
+
+// POST /api/tareas — crear nueva tarea en Sheets
+router.post('/', async (req, res) => {
+  const { tarea, pais = '', prioridad = 'Alta', fecha_mail = '' } = req.body
+  if (!tarea?.trim()) return res.status(400).json({ error: 'La tarea es requerida' })
+
+  try {
+    await appendRow(TASKS_SHEET(), [
+      prioridad,
+      pais,
+      tarea.trim(),
+      fecha_mail,
+      '',           // dias_retraso — calculado por Sheets
+      'Pendiente',  // libreria_intranet
+      'Pendiente',  // documentacion_inicial
+      'NO',         // finalizado
+      '', '', '',   // mail, mail2, documento
+    ])
+    res.status(201).json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // GET /api/tareas
 router.get('/', async (req, res) => {

@@ -1,9 +1,8 @@
-import { useState } from 'react'
-import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps'
+import { useState, useEffect, useRef } from 'react'
+import { ComposableMap, Geographies, Geography, Sphere, Graticule } from 'react-simple-maps'
 
 const GEO_URL = '/countries-110m.json'
 
-// ISO numeric codes de países de Sudamérica
 const SOUTH_AMERICA = new Set([
   '032', // Argentina
   '068', // Bolivia
@@ -20,7 +19,6 @@ const SOUTH_AMERICA = new Set([
   '254', // Guayana Francesa
 ])
 
-// Mapa de código ISO numérico → clave de la DB
 const ISO_TO_KEY = {
   '032': 'argentina',
   '068': 'bolivia',
@@ -31,142 +29,188 @@ const ISO_TO_KEY = {
   '858': 'uruguay',
 }
 
-// Colores fijos por país
 const COUNTRY_COLORS = {
-  argentina: '#5DADE2', // Azul Celeste
-  chile:     '#E57373', // Rojo Soft
-  ecuador:   '#C9A84C', // Amarillo Ocre
-  peru:      '#7B1C2E', // Granate/Rojo Oscuro
-  bolivia:   '#2E7D4F', // Verde Bosque
-  paraguay:  '#1A3A5C', // Azul Marino
-  uruguay:   '#7F9BAD', // Gris Azulado
+  argentina: '#5DADE2',
+  chile:     '#E57373',
+  ecuador:   '#C9A84C',
+  peru:      '#7B1C2E',
+  bolivia:   '#2E7D4F',
+  paraguay:  '#1A3A5C',
+  uruguay:   '#7F9BAD',
 }
 
-// Nombres en español
 const COUNTRY_NAMES = {
-  '032': 'Argentina',
-  '068': 'Bolivia',
-  '076': 'Brasil',
-  '152': 'Chile',
-  '170': 'Colombia',
-  '218': 'Ecuador',
-  '328': 'Guyana',
-  '600': 'Paraguay',
-  '604': 'Perú',
-  '740': 'Suriname',
-  '858': 'Uruguay',
-  '862': 'Venezuela',
+  '032': 'Argentina', '068': 'Bolivia',  '076': 'Brasil',
+  '152': 'Chile',     '170': 'Colombia', '218': 'Ecuador',
+  '328': 'Guyana',    '600': 'Paraguay', '604': 'Perú',
+  '740': 'Suriname',  '858': 'Uruguay',  '862': 'Venezuela',
   '254': 'Guayana Francesa',
 }
 
-function getColor(key) {
-  return key ? COUNTRY_COLORS[key] : '#d1d5db' // gris para países no rastreados
-}
-
-// Aclara el color del país para el hover
 function lighten(hex) {
   const n = parseInt(hex.slice(1), 16)
-  const r = Math.min(255, ((n >> 16) & 0xff) + 40)
-  const g = Math.min(255, ((n >> 8)  & 0xff) + 40)
-  const b = Math.min(255, ( n        & 0xff) + 40)
+  const r = Math.min(255, ((n >> 16) & 0xff) + 50)
+  const g = Math.min(255, ((n >> 8)  & 0xff) + 50)
+  const b = Math.min(255, ( n        & 0xff) + 50)
   return `rgb(${r},${g},${b})`
 }
 
-export default function SouthAmericaMap({ avgByCountry, countByCountry = {}, total = 0, onCountryClick }) {
-  const [tooltip, setTooltip] = useState(null)
+// Rotación inicial centrada en Sudamérica
+const INITIAL_ROTATION = [62, 14, 0]
 
-  // avgByCountry: { argentina: 75, chile: 50, ... }
+export default function SouthAmericaMap({ avgByCountry = {}, countByCountry = {}, total = 0, onCountryClick }) {
+  const [tooltip, setTooltip]     = useState(null)
+  const [rotation, setRotation]   = useState(INITIAL_ROTATION)
+  const [dragging, setDragging]   = useState(false)
+  const lastPos    = useRef(null)
+  const autoActive = useRef(true)   // auto-rotación activa hasta primer drag
+
+  // Auto-rotación suave
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (autoActive.current) {
+        setRotation(prev => [prev[0] - 0.2, prev[1], 0])
+      }
+    }, 40)
+    return () => clearInterval(interval)
+  }, [])
+
+  function onMouseDown(e) {
+    autoActive.current = false
+    setDragging(true)
+    lastPos.current = [e.clientX, e.clientY]
+    e.preventDefault()
+  }
+
+  function onMouseMove(e) {
+    if (!dragging || !lastPos.current) return
+    const dx = e.clientX - lastPos.current[0]
+    const dy = e.clientY - lastPos.current[1]
+    setRotation(prev => [
+      prev[0] + dx * 0.4,
+      Math.max(-80, Math.min(80, prev[1] - dy * 0.4)),
+      0,
+    ])
+    lastPos.current = [e.clientX, e.clientY]
+  }
+
+  function onMouseUp() {
+    setDragging(false)
+    lastPos.current = null
+  }
+
+  function handleReset() {
+    setRotation(INITIAL_ROTATION)
+    autoActive.current = true
+  }
 
   return (
     <div className="relative">
-      <ComposableMap
-        projection="geoMercator"
-        projectionConfig={{ center: [-60, -18], scale: 255 }}
-        width={400}
-        height={310}
-        style={{ width: '100%', height: 'auto' }}
+      {/* Controles */}
+      <div className="absolute top-1 right-1 z-10 flex flex-col gap-1">
+        <button
+          onClick={handleReset}
+          title="Volver a Sudamérica"
+          className="w-6 h-6 bg-white/80 border border-gray-200 rounded text-xs text-gray-500 hover:bg-white hover:text-indigo-600 transition-colors shadow-sm flex items-center justify-center"
+        >⌖</button>
+      </div>
+
+      <div
+        className="select-none"
+        style={{ cursor: dragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
       >
-        <ZoomableGroup>
+        <ComposableMap
+          projection="geoOrthographic"
+          projectionConfig={{ rotate: rotation, scale: 220 }}
+          width={400}
+          height={400}
+          style={{ width: '100%', height: 'auto' }}
+        >
+          {/* Océano */}
+          <Sphere fill="#c8e6f7" stroke="#a8d4ee" strokeWidth={0.5} />
+
+          {/* Grilla */}
+          <Graticule stroke="#b3d4e8" strokeWidth={0.25} step={[20, 20]} />
+
           <Geographies geography={GEO_URL}>
             {({ geographies }) =>
-              geographies
-                .filter(geo => SOUTH_AMERICA.has(geo.id))
-                .map(geo => {
-                  const key = ISO_TO_KEY[geo.id]
-                  const avg = key !== undefined ? (avgByCountry[key] ?? 0) : null
-                  const isTracked = key !== undefined
-                  const color = getColor(key)
-                  const name = COUNTRY_NAMES[geo.id] || geo.properties?.name
+              geographies.map(geo => {
+                const isSA      = SOUTH_AMERICA.has(geo.id)
+                const key       = ISO_TO_KEY[geo.id]
+                const isTracked = isSA && key !== undefined
+                const baseColor = isSA ? (COUNTRY_COLORS[key] || '#9ca3af') : '#dde8ee'
+                const name      = COUNTRY_NAMES[geo.id] || geo.properties?.name
 
-                  return (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill={color}
-                      stroke="#fff"
-                      strokeWidth={1}
-                      style={{
-                        default: { outline: 'none', cursor: isTracked ? 'pointer' : 'default' },
-                        hover: { outline: 'none', fill: isTracked ? lighten(color) : '#e5e7eb' },
-                        pressed: { outline: 'none' },
-                      }}
-                      onMouseEnter={(e) => {
-                        setTooltip({
-                          name,
-                          avg,
-                          isTracked,
-                          trained: key ? (countByCountry[key] ?? 0) : 0,
-                          x: e.clientX,
-                          y: e.clientY,
-                        })
-                      }}
-                      onMouseMove={(e) => {
-                        setTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null)
-                      }}
-                      onMouseLeave={() => setTooltip(null)}
-                      onClick={() => { if (isTracked && onCountryClick) onCountryClick(key) }}
-                    />
-                  )
-                })
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill={baseColor}
+                    stroke={isSA ? '#fff' : '#c8d8e2'}
+                    strokeWidth={isSA ? 0.7 : 0.2}
+                    style={{
+                      default:  { outline: 'none', cursor: isTracked ? 'pointer' : dragging ? 'grabbing' : 'grab' },
+                      hover:    { outline: 'none', fill: isSA ? lighten(baseColor) : '#c8d4da' },
+                      pressed:  { outline: 'none' },
+                    }}
+                    onMouseEnter={isSA ? (e) => setTooltip({
+                      name,
+                      isTracked,
+                      avg:     key ? (avgByCountry[key] ?? 0) : null,
+                      trained: key ? (countByCountry[key] ?? 0) : 0,
+                      x: e.clientX,
+                      y: e.clientY,
+                    }) : undefined}
+                    onMouseMove={isSA ? (e) => setTooltip(p => p ? { ...p, x: e.clientX, y: e.clientY } : null) : undefined}
+                    onMouseLeave={isSA ? () => setTooltip(null) : undefined}
+                    onClick={isTracked ? () => onCountryClick && onCountryClick(key) : undefined}
+                  />
+                )
+              })
             }
           </Geographies>
-        </ZoomableGroup>
-      </ComposableMap>
+        </ComposableMap>
+      </div>
 
       {/* Tooltip */}
       {tooltip && (
         <div
           className="fixed z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 pointer-events-none shadow-xl"
-          style={{ left: tooltip.x + 12, top: tooltip.y - 10 }}
+          style={{ left: tooltip.x + 14, top: tooltip.y - 10 }}
         >
           <div className="font-bold text-sm">{tooltip.name}</div>
           {tooltip.isTracked ? (
             <div className="mt-1 space-y-0.5">
-              <div>Capacitados (100%): <span className="font-bold text-green-400">{tooltip.trained} / {total}</span></div>
-              <div>Promedio general: <span className="font-bold">{tooltip.avg}%</span></div>
+              <div>Capacitados: <span className="font-bold text-green-400">{tooltip.trained} / {total}</span></div>
+              <div>Promedio: <span className="font-bold">{tooltip.avg}%</span></div>
             </div>
           ) : (
-            <div className="text-gray-400 mt-0.5">No rastreado</div>
+            <div className="text-gray-400 mt-0.5 text-xs">No rastreado</div>
           )}
         </div>
       )}
 
       {/* Leyenda */}
-      <div className="mt-3 flex flex-wrap gap-2 justify-center text-xs text-gray-600">
+      <div className="mt-2 flex flex-wrap gap-1.5 justify-center text-xs text-gray-600">
         {Object.entries(COUNTRY_COLORS).map(([key, color]) => {
-          const name = Object.entries(ISO_TO_KEY).map(([iso, k]) => k === key ? COUNTRY_NAMES[iso] : null).find(Boolean)
+          const iso  = Object.entries(ISO_TO_KEY).find(([, k]) => k === key)?.[0]
+          const name = iso ? COUNTRY_NAMES[iso] : key
           return (
             <div key={key} className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-sm" style={{ background: color }} />
+              <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color }} />
               <span>{name}</span>
             </div>
           )
         })}
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded-sm bg-gray-300" />
-          <span>Sin rastrear</span>
-        </div>
       </div>
+
+      <p className="text-center text-xs text-gray-400 mt-1.5">
+        Arrastrá para rotar · Hacé click en un país para ver detalles
+      </p>
     </div>
   )
 }

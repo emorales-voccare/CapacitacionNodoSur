@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import InlineDropdown from '../components/InlineDropdown'
 
-const PAIS_OPTIONS    = ['Todos', 'General', 'Ecuador', 'Argentina', 'Chile', 'Paraguay']
+const PAIS_OPTIONS    = ['Todos', 'General', 'Argentina', 'Bolivia', 'Chile', 'Ecuador', 'Paraguay', 'Peru', 'Uruguay']
 const PRIORIDAD_FILTER = ['Todos', 'Urgente', 'Alta', 'Baja', 'Hecho']
 
 const FIELD_OPTIONS = {
@@ -113,7 +113,7 @@ function ReopenModal({ task, onConfirm, onCancel }) {
 
 // ─── Tabla compartida ────────────────────────────────────────────────────────
 
-function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) {
+function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = false }) {
   if (tasks.length === 0) {
     return (
       <div className="text-center py-16 text-gray-400">
@@ -137,6 +137,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
             <th className="px-2 py-1.5 text-center whitespace-nowrap">Documentación</th>
             <th className="px-2 py-1.5 text-center whitespace-nowrap">Finalizado</th>
             <th className="px-2 py-1.5 text-center whitespace-nowrap">Links</th>
+            {!isFinalizados && <th className="px-2 py-1.5 w-6"></th>}
             {isFinalizados && <th className="px-2 py-1.5"></th>}
           </tr>
         </thead>
@@ -224,6 +225,19 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
                 </div>
               </td>
 
+              {/* Editar (solo en Pendientes) */}
+              {!isFinalizados && (
+                <td className="px-2 py-1 text-center">
+                  <button
+                    onClick={() => onEdit(task)}
+                    className="text-gray-300 hover:text-indigo-500 transition-colors text-base leading-none"
+                    title="Editar tarea"
+                  >
+                    ✏️
+                  </button>
+                </td>
+              )}
+
               {/* Reabrir (solo en Finalizados) */}
               {isFinalizados && (
                 <td className="px-2 py-1 text-right">
@@ -243,9 +257,93 @@ function TareasTable({ tasks, onFieldChange, onReopen, isFinalizados = false }) 
   )
 }
 
-// ─── Modal nueva tarea ────────────────────────────────────────────────────────
+// ─── Modales de tarea ────────────────────────────────────────────────────────
 
-const PAIS_CREATE = ['', 'General', 'Ecuador', 'Argentina', 'Chile', 'Paraguay']
+const PAIS_CREATE = ['', 'General', 'Argentina', 'Bolivia', 'Chile', 'Ecuador', 'Paraguay', 'Peru', 'Uruguay']
+
+// Convierte YYYY-MM-DD → DD/MM/YYYY
+function toSheetsDate(iso) {
+  if (!iso) return ''
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+// Convierte DD/MM/YYYY → YYYY-MM-DD
+function toInputDate(sheets) {
+  if (!sheets) return ''
+  const parts = sheets.split('/')
+  if (parts.length === 3) return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`
+  return ''
+}
+
+function TareaFormModal({ title, initial = {}, onClose, onSave }) {
+  const [tarea,     setTarea]     = useState(initial.tarea     || '')
+  const [pais,      setPais]      = useState(initial.pais      || '')
+  const [prioridad, setPrioridad] = useState(initial.prioridad || 'Alta')
+  const [fecha,     setFecha]     = useState(toInputDate(initial.fecha_mail))
+  const [saving,    setSaving]    = useState(false)
+  const [error,     setError]     = useState('')
+
+  async function handleSave() {
+    if (!tarea.trim()) { setError('La tarea es requerida'); return }
+    setSaving(true); setError('')
+    try {
+      await onSave({ tarea: tarea.trim(), pais, prioridad, fecha_mail: toSheetsDate(fecha) })
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+        <h3 className="text-base font-bold text-gray-900 mb-4">{title}</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Tarea <span className="text-red-400">*</span></label>
+            <textarea
+              autoFocus
+              value={tarea}
+              onChange={e => setTarea(e.target.value)}
+              rows={2}
+              placeholder="Descripción de la tarea..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Prioridad</label>
+              <select value={prioridad} onChange={e => setPrioridad(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                {['Urgente','Alta','Baja'].map(p => <option key={p}>{p}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">País</label>
+              <select value={pais} onChange={e => setPais(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                {PAIS_CREATE.map(p => <option key={p} value={p}>{p || '—'}</option>)}
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Fecha</label>
+            <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+          </div>
+        </div>
+        {error && <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
+        <div className="flex justify-end gap-3 mt-5">
+          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">Cancelar</button>
+          <button onClick={handleSave} disabled={saving}
+            className="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
+            {saving ? 'Guardando...' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function NuevaTareaModal({ onClose, onCreated }) {
   const [tarea,      setTarea]      = useState('')
@@ -363,6 +461,7 @@ export default function Tareas() {
   const [reopenTask, setReopenTask]     = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [showNewTask, setShowNewTask]   = useState(false)
+  const [editTask, setEditTask]         = useState(null)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -439,6 +538,18 @@ export default function Tareas() {
       setActionLoading(false)
       setReopenTask(null)
     }
+  }
+
+  async function handleEdit({ tarea, pais, prioridad, fecha_mail }) {
+    const res = await fetch(`/api/tareas/${editTask.rowIndex}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tarea, pais, prioridad, fecha_mail }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Error al guardar')
+    setPendientes(prev => prev.map(t => t.rowIndex === editTask.rowIndex ? data.task : t))
+    setEditTask(null)
   }
 
   // Filtros aplicados a pendientes
@@ -591,6 +702,7 @@ export default function Tareas() {
             <TareasTable
               tasks={filteredPendientes}
               onFieldChange={handleFieldChange}
+              onEdit={setEditTask}
             />
           ) : (
             <TareasTable
@@ -625,6 +737,16 @@ export default function Tareas() {
         <NuevaTareaModal
           onClose={() => setShowNewTask(false)}
           onCreated={() => { setShowNewTask(false); fetchAll() }}
+        />
+      )}
+
+      {/* Modal: editar tarea */}
+      {editTask && (
+        <TareaFormModal
+          title="Editar tarea"
+          initial={editTask}
+          onClose={() => setEditTask(null)}
+          onSave={handleEdit}
         />
       )}
     </div>

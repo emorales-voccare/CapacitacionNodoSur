@@ -107,6 +107,27 @@ router.post('/', async (req, res) => {
   }
 })
 
+// PUT /api/tareas/:rowIndex — editar campos principales de una tarea
+router.put('/:rowIndex', async (req, res) => {
+  const rowIndex = Number(req.params.rowIndex)
+  const { tarea, pais = '', prioridad = 'Alta', fecha_mail = '' } = req.body
+  if (!tarea?.trim()) return res.status(400).json({ error: 'La tarea es requerida' })
+
+  try {
+    await Promise.all([
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'A', prioridad),
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'B', pais),
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'C', tarea.trim()),
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'D', fecha_mail),
+    ])
+    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:K${rowIndex}`)
+    const task = rowToTask(rows[0] || [], rowIndex)
+    res.json({ task })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/tareas
 router.get('/', async (req, res) => {
   try {

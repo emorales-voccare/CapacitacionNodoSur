@@ -9,6 +9,7 @@ const PAGES = { dashboard: Dashboard, coordinadores: Coordinadores, tareas: Tare
 export default function App() {
   const [page, setPage] = useState('tareas')
   const [coordOpen, setCoordOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const Page = PAGES[page] || Tareas
 
@@ -23,10 +24,19 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100">
       {/* Sidebar */}
-      <aside className="w-60 bg-gray-900 text-white flex flex-col shrink-0">
-        <div className="px-6 py-5 border-b border-gray-700">
-          <div className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-1">Nodo Sur</div>
-          <h1 className="text-lg font-bold text-white leading-tight">Gestión de Capacitación</h1>
+      <aside className={`${sidebarOpen ? 'w-60' : 'w-0'} bg-gray-900 text-white flex flex-col shrink-0 transition-[width] duration-200 overflow-hidden`}>
+        <div className="px-6 py-5 border-b border-gray-700 flex items-start justify-between">
+          <div>
+            <div className="text-xs font-semibold text-indigo-400 uppercase tracking-widest mb-1">Nodo Sur</div>
+            <h1 className="text-lg font-bold text-white leading-tight">Gestión de Capacitación</h1>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="mt-1 text-gray-500 hover:text-white transition-colors text-sm shrink-0"
+            title="Ocultar menú"
+          >
+            ◀
+          </button>
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -106,7 +116,16 @@ export default function App() {
       </aside>
 
       {/* Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto relative">
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="fixed left-0 top-1/2 -translate-y-1/2 z-20 bg-gray-900 text-white px-1 py-3 rounded-r-lg text-xs hover:bg-gray-700 transition-colors"
+            title="Mostrar menú"
+          >
+            ▶
+          </button>
+        )}
         <Page />
       </main>
     </div>

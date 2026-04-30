@@ -460,6 +460,7 @@ export default function Tareas() {
   const [archiveTask, setArchiveTask]   = useState(null)
   const [reopenTask, setReopenTask]     = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
+  const [automationLoading, setAutomationLoading] = useState(false)
   const [showNewTask, setShowNewTask]   = useState(false)
   const [editTask, setEditTask]         = useState(null)
 
@@ -484,6 +485,24 @@ export default function Tareas() {
   }, [])
 
   useEffect(() => { fetchAll() }, [fetchAll])
+
+  async function handleRunAutomation() {
+    if (automationLoading) return
+    setAutomationLoading(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/tareas/automatizar', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al ejecutar automatización')
+      
+      // Esperar un momento y refrescar para ver los cambios
+      setTimeout(() => fetchAll(), 3000)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAutomationLoading(false)
+    }
+  }
 
   async function handleFieldChange(task, field, value) {
     const res = await fetch(`/api/tareas/${task.rowIndex}`, {
@@ -591,6 +610,23 @@ export default function Tareas() {
           )}
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={handleRunAutomation}
+            disabled={automationLoading}
+            className={`flex items-center gap-1.5 px-3 py-1.5 border border-indigo-200 text-indigo-700 text-sm font-semibold rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-50 ${automationLoading ? 'animate-pulse' : ''}`}
+          >
+            {automationLoading ? (
+              <>
+                <span className="animate-spin inline-block text-xs">🧠</span>
+                IA Analizando...
+              </>
+            ) : (
+              <>
+                <span>🚀</span>
+                Automatizar
+              </>
+            )}
+          </button>
           <button
             onClick={() => setShowNewTask(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"

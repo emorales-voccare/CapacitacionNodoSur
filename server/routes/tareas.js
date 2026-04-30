@@ -201,6 +201,35 @@ router.post('/:rowIndex/archive', async (req, res) => {
   }
 })
 
+// POST /api/tareas/automatizar — Dispara el motor de Apps Script
+router.post('/automatizar', async (req, res) => {
+  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL
+  
+  if (!scriptUrl) {
+    return res.status(500).json({ error: 'URL de Apps Script no configurada en el servidor (.env)' })
+  }
+
+  try {
+    const response = await fetch(scriptUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow'
+    })
+
+    const result = await response.json()
+    
+    if (result.status === 'success') {
+      res.json({ success: true, message: result.message })
+    } else {
+      res.status(500).json({ error: result.message || 'Error en la ejecución del script' })
+    }
+  } catch (err) {
+    res.status(500).json({ error: `Error de conexión con Apps Script: ${err.message}` })
+  }
+})
+
+// POST /api/tareas/finalizados/:rowIndex/reopen — vuelve a Tareas
+
 // POST /api/tareas/finalizados/:rowIndex/reopen — vuelve a Tareas
 router.post('/finalizados/:rowIndex/reopen', async (req, res) => {
   const rowIndex = Number(req.params.rowIndex)

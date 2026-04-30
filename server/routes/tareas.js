@@ -107,22 +107,54 @@ router.post('/', async (req, res) => {
   }
 })
 
-// PUT /api/tareas/:rowIndex — editar campos principales de una tarea
+// PUT /api/tareas/:rowIndex — editar todos los campos de una tarea
 router.put('/:rowIndex', async (req, res) => {
   const rowIndex = Number(req.params.rowIndex)
-  const { tarea, pais = '', prioridad = 'Alta', fecha_mail = '' } = req.body
+  const { tarea, pais = '', prioridad = 'Alta', fecha_mail = '', mail = '', mail2 = '', documento = '' } = req.body
   if (!tarea?.trim()) return res.status(400).json({ error: 'La tarea es requerida' })
 
   try {
+    // Actualizamos toda la fila (A a K, excepto la E que es calculada)
+    // En lugar de multiples calls, podemos usar update con range completo si queremos ser eficientes
+    // Pero para mantener consistencia con updateSheetCell y no romper la columna E:
     await Promise.all([
       updateSheetCell(TASKS_SHEET(), rowIndex, 'A', prioridad),
       updateSheetCell(TASKS_SHEET(), rowIndex, 'B', pais),
       updateSheetCell(TASKS_SHEET(), rowIndex, 'C', tarea.trim()),
       updateSheetCell(TASKS_SHEET(), rowIndex, 'D', fecha_mail),
+      // E es dias_retraso (calculada)
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'I', mail),
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'J', mail2),
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'K', documento),
     ])
+    
     const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:K${rowIndex}`)
     const task = rowToTask(rows[0] || [], rowIndex)
     res.json({ task })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/tareas/:rowIndex — elimina una tarea
+router.delete('/:rowIndex', async (req, res) => {
+  const rowIndex = Number(req.params.rowIndex)
+  try {
+    const { deleteRow } = require('../sheets')
+    await deleteRow(TASKS_SHEET(), rowIndex)
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/tareas/finalizados/:rowIndex — elimina una tarea finalizada
+router.delete('/finalizados/:rowIndex', async (req, res) => {
+  const rowIndex = Number(req.params.rowIndex)
+  try {
+    const { deleteRow } = require('../sheets')
+    await deleteRow(FIN_SHEET(), rowIndex)
+    res.json({ success: true })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

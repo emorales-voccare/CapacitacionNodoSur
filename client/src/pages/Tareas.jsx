@@ -120,6 +120,8 @@ const COUNTRY_COLORS = {
   'Peru':      'bg-red-50 text-red-800 border-red-200',
   'Uruguay':   'bg-sky-50 text-sky-700 border-sky-100',
   'General':   'bg-gray-50 text-gray-700 border-gray-100',
+  'Colombia':  'bg-orange-50 text-orange-700 border-orange-100',
+  'Venezuela': 'bg-yellow-50 text-yellow-800 border-yellow-200',
 }
 
 function CountryBadge({ pais }) {
@@ -134,7 +136,7 @@ function CountryBadge({ pais }) {
 
 // ─── Tabla compartida ────────────────────────────────────────────────────────
 
-function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = false }) {
+function TareasTable({ tasks, onFieldChange, onReopen, onEdit, onDelete, isFinalizados = false }) {
   if (tasks.length === 0) {
     return (
       <div className="text-center py-16 text-gray-400">
@@ -158,7 +160,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = f
             <th className="px-2 py-1.5 text-center whitespace-nowrap">Documentación</th>
             <th className="px-2 py-1.5 text-center whitespace-nowrap">Finalizado</th>
             <th className="px-2 py-1.5 text-center whitespace-nowrap">Links</th>
-            {!isFinalizados && <th className="px-2 py-1.5 w-6"></th>}
+            <th className="px-2 py-1.5 w-6 text-center"></th>
             {isFinalizados && <th className="px-2 py-1.5"></th>}
           </tr>
         </thead>
@@ -246,9 +248,9 @@ function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = f
                 </div>
               </td>
 
-              {/* Editar (solo en Pendientes) */}
-              {!isFinalizados && (
-                <td className="px-2 py-1 text-center">
+              {/* Acciones */}
+              <td className="px-2 py-1 text-center whitespace-nowrap">
+                <div className="flex items-center justify-center gap-2">
                   <button
                     onClick={() => onEdit(task)}
                     className="text-gray-300 hover:text-indigo-500 transition-colors text-base leading-none"
@@ -256,8 +258,15 @@ function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = f
                   >
                     ✏️
                   </button>
-                </td>
-              )}
+                  <button
+                    onClick={() => onDelete(task)}
+                    className="text-gray-300 hover:text-red-500 transition-colors text-base leading-none"
+                    title="Eliminar tarea"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </td>
 
               {/* Reabrir (solo en Finalizados) */}
               {isFinalizados && (
@@ -280,7 +289,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = f
 
 // ─── Modales de tarea ────────────────────────────────────────────────────────
 
-const PAIS_CREATE = ['', 'General', 'Argentina', 'Bolivia', 'Chile', 'Ecuador', 'Paraguay', 'Peru', 'Uruguay']
+const PAIS_CREATE = ['', 'General', 'Argentina', 'Bolivia', 'Chile', 'Ecuador', 'Paraguay', 'Peru', 'Uruguay', 'Colombia', 'Venezuela']
 
 // Convierte YYYY-MM-DD → DD/MM/YYYY
 function toSheetsDate(iso) {
@@ -301,6 +310,9 @@ function TareaFormModal({ title, initial = {}, onClose, onSave }) {
   const [pais,      setPais]      = useState(initial.pais      || '')
   const [prioridad, setPrioridad] = useState(initial.prioridad || 'Alta')
   const [fecha,     setFecha]     = useState(toInputDate(initial.fecha_mail))
+  const [mail,      setMail]      = useState(initial.mail      || '')
+  const [mail2,     setMail2]     = useState(initial.mail2     || '')
+  const [documento, setDocumento] = useState(initial.documento || '')
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
 
@@ -308,7 +320,15 @@ function TareaFormModal({ title, initial = {}, onClose, onSave }) {
     if (!tarea.trim()) { setError('La tarea es requerida'); return }
     setSaving(true); setError('')
     try {
-      await onSave({ tarea: tarea.trim(), pais, prioridad, fecha_mail: toSheetsDate(fecha) })
+      await onSave({
+        tarea: tarea.trim(),
+        pais,
+        prioridad,
+        fecha_mail: toSheetsDate(fecha),
+        mail: mail.trim(),
+        mail2: mail2.trim(),
+        documento: documento.trim()
+      })
     } catch (err) {
       setError(err.message)
       setSaving(false)
@@ -317,7 +337,7 @@ function TareaFormModal({ title, initial = {}, onClose, onSave }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <h3 className="text-base font-bold text-gray-900 mb-4">{title}</h3>
         <div className="space-y-3">
           <div>
@@ -336,7 +356,7 @@ function TareaFormModal({ title, initial = {}, onClose, onSave }) {
               <label className="block text-xs font-medium text-gray-600 mb-1">Prioridad</label>
               <select value={prioridad} onChange={e => setPrioridad(e.target.value)}
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400">
-                {['Urgente','Alta','Baja'].map(p => <option key={p}>{p}</option>)}
+                {['Urgente','Alta','Baja','Hecho'].map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
             <div>
@@ -352,13 +372,32 @@ function TareaFormModal({ title, initial = {}, onClose, onSave }) {
             <input type="date" value={fecha} onChange={e => setFecha(e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
           </div>
+
+          <div className="border-t border-gray-100 pt-3 mt-3 space-y-3">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Links (opcional)</p>
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 mb-0.5 uppercase">Email Link</label>
+              <input type="url" value={mail} onChange={e => setMail(e.target.value)} placeholder="https://..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 mb-0.5 uppercase">Carpeta Drive</label>
+              <input type="url" value={mail2} onChange={e => setMail2(e.target.value)} placeholder="https://..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-medium text-gray-500 mb-0.5 uppercase">Documento</label>
+              <input type="url" value={documento} onChange={e => setDocumento(e.target.value)} placeholder="https://..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+            </div>
+          </div>
         </div>
         {error && <p className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{error}</p>}
         <div className="flex justify-end gap-3 mt-5">
           <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">Cancelar</button>
           <button onClick={handleSave} disabled={saving}
             className="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors">
-            {saving ? 'Guardando...' : 'Guardar'}
+            {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
         </div>
       </div>
@@ -484,6 +523,7 @@ export default function Tareas() {
   const [automationLoading, setAutomationLoading] = useState(false)
   const [showNewTask, setShowNewTask]   = useState(false)
   const [editTask, setEditTask]         = useState(null)
+  const [deleteTask, setDeleteTask]     = useState(null)
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -580,11 +620,33 @@ export default function Tareas() {
     }
   }
 
-  async function handleEdit({ tarea, pais, prioridad, fecha_mail }) {
+  async function handleDeleteConfirm() {
+    if (!deleteTask || actionLoading) return
+    setActionLoading(true)
+    try {
+      const url = tab === 'pendientes' 
+        ? `/api/tareas/${deleteTask.rowIndex}`
+        : `/api/tareas/finalizados/${deleteTask.rowIndex}`
+      
+      const res = await fetch(url, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error)
+      }
+      await fetchAll()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setActionLoading(false)
+      setDeleteTask(null)
+    }
+  }
+
+  async function handleEdit({ tarea, pais, prioridad, fecha_mail, mail, mail2, documento }) {
     const res = await fetch(`/api/tareas/${editTask.rowIndex}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tarea, pais, prioridad, fecha_mail }),
+      body: JSON.stringify({ tarea, pais, prioridad, fecha_mail, mail, mail2, documento }),
     })
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Error al guardar')
@@ -760,12 +822,14 @@ export default function Tareas() {
               tasks={filteredPendientes}
               onFieldChange={handleFieldChange}
               onEdit={setEditTask}
+              onDelete={setDeleteTask}
             />
           ) : (
             <TareasTable
               tasks={finalizados}
               isFinalizados
               onReopen={setReopenTask}
+              onDelete={setDeleteTask}
             />
           )}
         </div>
@@ -787,6 +851,37 @@ export default function Tareas() {
           onConfirm={handleReopenConfirm}
           onCancel={() => setReopenTask(null)}
         />
+      )}
+
+      {/* Modal: confirmar eliminación */}
+      {deleteTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="text-2xl mb-3 text-center">🗑️</div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-2">Eliminar tarea</h3>
+            <p className="text-sm text-gray-600 text-center mb-1">
+              ¿Seguro que querés eliminar esta tarea?
+            </p>
+            <p className="text-sm font-medium text-gray-800 text-center mb-5 px-2">
+              "{deleteTask.tarea}"
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteTask(null)}
+                className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={actionLoading}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading ? 'Eliminando...' : 'Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Modal: nueva tarea */}

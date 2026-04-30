@@ -53,7 +53,7 @@ function OverallBar({ coordinador }) {
   )
 }
 
-export default function CoordinadoresTable({ coordinadores, onEdit, onDelete, onDotClick }) {
+export default function CoordinadoresTable({ coordinadores, onEdit, onDelete, onDotClick, onCountryClick }) {
   if (coordinadores.length === 0) {
     return (
       <div className="text-center py-16 text-gray-400">
@@ -71,10 +71,15 @@ export default function CoordinadoresTable({ coordinadores, onEdit, onDelete, on
           <tr className="bg-gray-50 border-b border-gray-200">
             <th className="text-left px-4 py-2 font-semibold text-gray-500 text-xs uppercase tracking-wide">Coordinador</th>
             {COUNTRIES.map(({ key, label, flag, color }) => (
-              <th key={key} className="px-1.5 py-2 text-center">
+              <th
+                key={key}
+                className="px-1.5 py-2 text-center cursor-pointer hover:bg-gray-100 transition-colors group"
+                onClick={() => onCountryClick && onCountryClick(key)}
+                title={`Filtrar por ${label}`}
+              >
                 <div className="flex flex-col items-center gap-0.5">
-                  <span className="text-sm">{flag}</span>
-                  <span className="text-xs font-semibold" style={{ color }}>{label}</span>
+                  <span className="text-sm group-hover:scale-110 transition-transform">{flag}</span>
+                  <span className="text-[10px] font-bold" style={{ color }}>{label}</span>
                 </div>
               </th>
             ))}

@@ -106,6 +106,10 @@ export default function Coordinadores() {
       return a.nombre.localeCompare(b.nombre)
     })
 
+  function handleCountryClick(key) {
+    setCountryFilter(prev => prev === key ? null : key)
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -225,6 +229,7 @@ export default function Coordinadores() {
             onEdit={c => setEditTarget(c)}
             onDelete={c => setDeleteTarget(c)}
             onDotClick={handleDotClick}
+            onCountryClick={handleCountryClick}
           />
         )}
       </div>

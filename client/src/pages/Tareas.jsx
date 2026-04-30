@@ -111,6 +111,27 @@ function ReopenModal({ task, onConfirm, onCancel }) {
   )
 }
 
+const COUNTRY_COLORS = {
+  'Argentina': 'bg-blue-50 text-blue-700 border-blue-100',
+  'Bolivia':   'bg-green-50 text-green-700 border-green-100',
+  'Chile':     'bg-red-50 text-red-700 border-red-100',
+  'Ecuador':   'bg-yellow-50 text-yellow-700 border-yellow-100',
+  'Paraguay':  'bg-indigo-50 text-indigo-700 border-indigo-100',
+  'Peru':      'bg-red-50 text-red-800 border-red-200',
+  'Uruguay':   'bg-sky-50 text-sky-700 border-sky-100',
+  'General':   'bg-gray-50 text-gray-700 border-gray-100',
+}
+
+function CountryBadge({ pais }) {
+  if (!pais || pais === '—') return <span className="text-gray-300">—</span>
+  const colorClass = COUNTRY_COLORS[pais] || 'bg-gray-50 text-gray-600 border-gray-100'
+  return (
+    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border ${colorClass}`}>
+      {pais}
+    </span>
+  )
+}
+
 // ─── Tabla compartida ────────────────────────────────────────────────────────
 
 function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = false }) {
@@ -167,7 +188,7 @@ function TareasTable({ tasks, onFieldChange, onReopen, onEdit, isFinalizados = f
 
               {/* País */}
               <td className="px-2 py-1 text-center">
-                <span className="text-xs text-gray-600 font-medium">{task.pais || '—'}</span>
+                <CountryBadge pais={task.pais} />
               </td>
 
               {/* Fecha */}

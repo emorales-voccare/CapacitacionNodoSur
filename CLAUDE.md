@@ -56,11 +56,13 @@ In dev, Vite proxies `/api/*` to `http://localhost:3001`. In production, Express
 
 - `server/index.js` — Entry point. Initializes DB, mounts routers, serves static in production.
 - `server/db.js` — PostgreSQL via `pg` Pool. Lazy-initializes with IPv4 DNS resolution. `initDB()` creates tables if they don't exist (`coordinadores`, `doc_folders`, `doc_items`).
-- `server/sheets.js` — Google Sheets API client (googleapis). Provides: `getSheetValues`, `updateSheetCell`, `appendRow`, `deleteRow`, `moveRow`. Caches sheet numeric IDs. The `GOOGLE_PRIVATE_KEY` env var is normalized here (strips outer quotes, converts `\n` literals to real newlines).
+- `server/sheets.js` — Google Sheets API client (googleapis). Provides: `getSheetValues`, `updateSheetCell`, `appendRow`, `deleteRow`, `moveRow`. Caches sheet numeric IDs. The `GOOGLE_PRIVATE_KEY` env var is normalized here (strips outer quotes, converts `\n` literals to real newlines). `appendRow` has a custom implementation: it reads the full sheet (columns A:L) first to find the true last occupied row, avoiding overwrites caused by sparse data. **If the sheet schema ever grows beyond column L, update the `A:L` range in `appendRow`.**
 - `server/routes/coordinadores.js` — CRUD for coordinadores table + `POST /export/sheets` which creates a formatted sheet in the Google Spreadsheet.
-- `server/routes/tareas.js` — Tasks backed entirely by Google Sheets (no DB). Reads/writes to the `TASKS_SHEET_NAME` and `FINALIZADOS_SHEET_NAME` tabs. Row index is used as the record identifier (1-based, row 1 is header). Includes archive/reopen (move between sheets) and `POST /automatizar` to trigger an Apps Script.
+- `server/routes/tareas.js` — Tasks backed entirely by Google Sheets (no DB). Reads/writes to the `TASKS_SHEET_NAME` and `FINALIZADOS_SHEET_NAME` tabs. Row index is used as the record identifier (1-based, row 1 is header). Includes archive/reopen (move between sheets) and `POST /automatizar` to trigger an Apps Script. **Route ordering matters:** `/finalizados`, `/meta`, and `/automatizar` must be defined before `/:rowIndex` so Express doesn't treat those path segments as numeric IDs.
 - `server/routes/import.js` — Imports coordinadores from a public Google Sheets CSV URL (preview + confirm with replace/append modes).
 - `server/routes/documentacion.js` — CRUD for `doc_folders` and `doc_items` (stored in PostgreSQL).
+
+`initDB()` failure does not prevent the server from starting — Coordinadores/Documentacion degrade gracefully; Tareas (Sheets-backed) remains fully functional.
 
 `GET /api/health` is a lightweight ping endpoint used by the frontend to detect Render cold starts and show a banner while the server wakes up.
 
@@ -92,13 +94,34 @@ Shared components:
 2. Add a new page component in `client/src/pages/`.
 3. Add a nav entry in `client/src/App.jsx` (the `PAGES` map and sidebar nav).
 
+## Tareas Sheet Schema
+
+Row 1 is the header. Data starts at row 2. The `rowIndex` used as the record ID is the actual sheet row number (1-based).
+
+| Col | Field | Notes |
+|-----|-------|-------|
+| A | `prioridad` | Controlled values (see `FIELD_OPTIONS`) |
+| B | `pais` | Free text |
+| C | `tarea` | Free text, required |
+| D | `fecha_mail` | Date string DD/MM/YYYY |
+| E | `dias_retraso` | **Computed server-side** in `rowToTask()` from `fecha_mail`; always written as empty string to the sheet (col E may hold a Sheets formula) |
+| F | `libreria_intranet` | Controlled values |
+| G | `documentacion_inicial` | Controlled values |
+| H | `finalizado` | `SÍ` / `NO` |
+| I | `mail` | Free text |
+| J | `mail2` | Free text |
+| K | `documento` | Free text |
+| L | `grupo` | Free text |
+
+A task is auto-eligible for archiving (`readyToArchive: true`) when: `prioridad === 'Hecho'` AND `libreria_intranet === 'Hecho'` AND `documentacion_inicial === '✅ Finalizado'` AND `finalizado === 'SÍ'`. The PATCH endpoint returns this flag; the frontend decides whether to prompt the user.
+
 ## Country Values
 
 The `coordinadores` table columns for each of the 7 countries (`argentina`, `chile`, `ecuador`, `peru`, `bolivia`, `paraguay`, `uruguay`) only accept the values `0`, `50`, or `100`. This constraint is enforced both at the DB level (`CHECK` constraint) and in the route validation.
 
 When exporting to Sheets, values are divided by 100 and written as decimals so Google Sheets' `PERCENT` format displays them correctly (`0.5` → `50%`).
 
-The Coordinadores page also supports local `.xlsx` download using `xlsx-js-style` (client-side). The map in `SouthAmericaMap.jsx` uses `react-simple-maps`. The Tareas page uses `@dnd-kit/core` + `@dnd-kit/utilities` for drag-and-drop task reordering.
+The Coordinadores page also supports local `.xlsx` download using `xlsx-js-style` (client-side). The map in `SouthAmericaMap.jsx` uses `react-simple-maps`. The Tareas page uses `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` for drag-and-drop task reordering. Reads are capped at `A2:L500` (499 tasks max) — update `DATA_RANGE` in `server/routes/tareas.js` if more rows are needed.
 
 Note: `xlsx` (root `dependencies`) is used server-side for export. `xlsx-js-style` (`client/dependencies`) is the client-side counterpart — they are separate packages.
 

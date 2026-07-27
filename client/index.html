@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Capacitación Nodo Sur</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -11,19 +15,26 @@
           extend: {
             colors: {
               brand: {
-                50: '#eef2ff',
-                600: '#4f46e5',
-                700: '#4338ca',
-                800: '#3730a3',
-                900: '#312e81',
+                50:  '#f0f4e8',
+                100: '#d4e0c0',
+                200: '#b8cc99',
+                400: '#8aad64',
+                500: '#6b8544',
+                600: '#4a6741',
+                700: '#3d5636',
+                800: '#2e4229',
+                900: '#1c2711',
               }
-            }
+            },
+            fontFamily: {
+              sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+            },
           }
         }
       }
     </script>
   </head>
-  <body class="bg-gray-100">
+  <body class="bg-[#f7f6f1]">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

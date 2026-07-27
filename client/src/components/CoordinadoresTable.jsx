@@ -42,7 +42,7 @@ function OverallBar({ coordinador }) {
         <span className="text-xs font-bold" style={{ color: barColor }}>{avg}%</span>
         <span className="text-xs text-gray-400">{complete}/7</span>
       </div>
-      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
         <div
           className="h-1.5 rounded-full"
           style={{ width: `${avg}%`, backgroundColor: barColor }}
@@ -70,8 +70,8 @@ export default function CoordinadoresTable({ coordinadores, onEdit, onDelete, on
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50 border-b border-gray-200">
-            <th className="text-left px-4 py-2 font-semibold text-gray-500 text-xs uppercase tracking-wide">Coordinador</th>
+          <tr className="bg-stone-50 border-b border-stone-200">
+            <th className="text-left px-4 py-2 font-semibold text-stone-500 text-xs uppercase tracking-wide">Coordinador</th>
             {COUNTRIES.map(({ key, label, flag, color }) => (
               <th
                 key={key}
@@ -85,11 +85,11 @@ export default function CoordinadoresTable({ coordinadores, onEdit, onDelete, on
                 </div>
               </th>
             ))}
-            <th className="px-4 py-2 font-semibold text-gray-500 text-xs uppercase tracking-wide text-center">Progreso</th>
+            <th className="px-4 py-2 font-semibold text-stone-500 text-xs uppercase tracking-wide text-center">Progreso</th>
             <th className="px-3 py-2"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-stone-100">
           {coordinadores.map((c) => {
             const values = COUNTRIES.map(({ key }) => c[key] || 0)
             const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length)
@@ -99,7 +99,7 @@ export default function CoordinadoresTable({ coordinadores, onEdit, onDelete, on
             return (
               <tr
                 key={c.id}
-                className={`hover:bg-indigo-50/40 transition-colors ${allDone ? 'bg-green-50' : ''}`}
+                className={`hover:bg-brand-50/40 transition-colors ${allDone ? 'bg-green-50' : ''}`}
               >
                 {/* Nombre con indicador lateral */}
                 <td className="px-4 py-1.5">
@@ -126,7 +126,7 @@ export default function CoordinadoresTable({ coordinadores, onEdit, onDelete, on
 
                 {/* Acciones */}
                 <td className="px-3 py-1.5 text-right whitespace-nowrap">
-                  <button onClick={() => onEdit(c)} className="text-indigo-500 hover:text-indigo-700 font-medium mr-2 text-xs">Editar</button>
+                  <button onClick={() => onEdit(c)} className="text-brand-600 hover:text-brand-700 font-medium mr-2 text-xs">Editar</button>
                   <button onClick={() => onDelete(c)} className="text-red-400 hover:text-red-600 font-medium text-xs">Eliminar</button>
                 </td>
               </tr>

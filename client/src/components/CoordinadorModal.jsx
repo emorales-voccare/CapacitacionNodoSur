@@ -77,7 +77,7 @@ export default function CoordinadorModal({ coordinador, onClose, onSave }) {
               value={form.nombre}
               onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
               placeholder="Ej: GARCIA MARIO"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
               required
               autoFocus
             />
@@ -126,7 +126,7 @@ export default function CoordinadorModal({ coordinador, onClose, onSave }) {
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="px-5 py-2 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
             >
               {loading ? 'Guardando...' : isEdit ? 'Guardar cambios' : 'Agregar'}
             </button>

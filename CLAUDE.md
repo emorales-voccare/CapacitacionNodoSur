@@ -121,7 +121,7 @@ The `coordinadores` table columns for each of the 7 countries (`argentina`, `chi
 
 When exporting to Sheets, values are divided by 100 and written as decimals so Google Sheets' `PERCENT` format displays them correctly (`0.5` → `50%`).
 
-The Coordinadores page also supports local `.xlsx` download using `xlsx-js-style` (client-side). The map in `SouthAmericaMap.jsx` uses `react-simple-maps`. The Tareas page uses `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` for drag-and-drop task reordering. Reads are capped at `A2:L500` (499 tasks max) — update `DATA_RANGE` in `server/routes/tareas.js` if more rows are needed.
+The Coordinadores page also supports local `.xlsx` download using `xlsx-js-style` (client-side). The map in `SouthAmericaMap.jsx` uses `react-simple-maps`. The Tareas page uses `@dnd-kit/core` + `@dnd-kit/sortable` + `@dnd-kit/utilities` for drag-and-drop task reordering and `framer-motion` for animations. Reads are capped at `A2:L500` (499 tasks max) — update `DATA_RANGE` in `server/routes/tareas.js` if more rows are needed.
 
 Note: `xlsx` (root `dependencies`) is used server-side for export. `xlsx-js-style` (`client/dependencies`) is the client-side counterpart — they are separate packages.
 

@@ -36,7 +36,7 @@ function FolderModal({ onClose, onSave }) {
                 key={i}
                 onClick={() => setIcono(i)}
                 className={`text-xl p-1.5 rounded-lg border-2 transition-colors ${
-                  icono === i ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'
+                  icono === i ? 'border-brand-600 bg-brand-50' : 'border-gray-200 hover:border-gray-300'
                 }`}
               >{i}</button>
             ))}
@@ -50,7 +50,7 @@ function FolderModal({ onClose, onSave }) {
             onChange={e => setNombre(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSave()}
             placeholder="Ej: Plantillas"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div className="flex justify-end gap-3">
@@ -58,7 +58,7 @@ function FolderModal({ onClose, onSave }) {
           <button
             onClick={handleSave}
             disabled={saving || !nombre.trim()}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
             {saving ? 'Guardando...' : 'Crear'}
           </button>
@@ -98,7 +98,7 @@ function ItemModal({ onClose, onSave }) {
                 key={i}
                 onClick={() => setTipo(i)}
                 className={`text-xl p-1.5 rounded-lg border-2 transition-colors ${
-                  tipo === i ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'
+                  tipo === i ? 'border-brand-600 bg-brand-50' : 'border-gray-200 hover:border-gray-300'
                 }`}
               >{i}</button>
             ))}
@@ -111,7 +111,7 @@ function ItemModal({ onClose, onSave }) {
             value={nombre}
             onChange={e => setNombre(e.target.value)}
             placeholder="Ej: Plantilla de actas"
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div className="mb-5">
@@ -121,7 +121,7 @@ function ItemModal({ onClose, onSave }) {
             onChange={e => handleUrlChange(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSave()}
             placeholder="https://docs.google.com/..."
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
         </div>
         <div className="flex justify-end gap-3">
@@ -129,7 +129,7 @@ function ItemModal({ onClose, onSave }) {
           <button
             onClick={handleSave}
             disabled={saving || !nombre.trim() || !url.trim()}
-            className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 disabled:opacity-50 transition-colors"
           >
             {saving ? 'Guardando...' : 'Agregar'}
           </button>
@@ -205,7 +205,7 @@ export default function Documentacion() {
         <div>
           {selectedFolder ? (
             <div className="flex items-center gap-2 text-sm text-gray-500">
-              <button onClick={() => setSelectedFolder(null)} className="hover:text-indigo-600 transition-colors">
+              <button onClick={() => setSelectedFolder(null)} className="hover:text-brand-600 transition-colors">
                 Documentación
               </button>
               <span>›</span>
@@ -218,14 +218,14 @@ export default function Documentacion() {
         {selectedFolder ? (
           <button
             onClick={() => setShowItemModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition-colors"
           >
             <span>+</span> Agregar link
           </button>
         ) : (
           <button
             onClick={() => setShowFolderModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition-colors"
           >
             <span>+</span> Nueva carpeta
           </button>
@@ -248,7 +248,7 @@ export default function Documentacion() {
               <div key={folder.id} className="group relative">
                 <button
                   onClick={() => setSelectedFolder(folder)}
-                  className="w-full bg-white border border-gray-200 rounded-xl p-4 text-center hover:border-indigo-300 hover:shadow-sm transition-all"
+                  className="w-full bg-white border border-gray-200 rounded-xl p-4 text-center hover:border-brand-200 hover:shadow-sm transition-all"
                 >
                   <div className="text-3xl mb-2">{folder.icono}</div>
                   <div className="text-sm font-semibold text-gray-800 leading-tight">{folder.nombre}</div>
@@ -285,7 +285,7 @@ export default function Documentacion() {
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 text-xs text-indigo-500 hover:text-indigo-700 font-medium px-2 py-1 rounded hover:bg-indigo-50 transition-colors"
+                    className="shrink-0 text-xs text-brand-600 hover:text-brand-700 font-medium px-2 py-1 rounded hover:bg-brand-50 transition-colors"
                   >
                     Abrir →
                   </a>

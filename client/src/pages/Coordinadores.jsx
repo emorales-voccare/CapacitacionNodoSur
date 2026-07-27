@@ -115,7 +115,7 @@ export default function Coordinadores() {
   const handleExportExcel = () => {
     // 1. Preparar encabezados con estilo
     const headerStyle = {
-      fill: { fgColor: { rgb: "4F46E5" } }, // Indigo-600
+      fill: { fgColor: { rgb: "4a6741" } }, // Brand green
       font: { color: { rgb: "FFFFFF" }, bold: true },
       alignment: { horizontal: "center" }
     }
@@ -208,8 +208,8 @@ export default function Coordinadores() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Coordinadores</h2>
-          <p className="text-gray-500 text-sm mt-0.5">
+          <h2 className="text-2xl font-bold" style={{ color: '#1c2711' }}>Coordinadores</h2>
+          <p className="text-stone-500 text-sm mt-0.5">
             {coordinadores.length} registros · Matriz Radar Sur 2026
           </p>
         </div>
@@ -229,18 +229,49 @@ export default function Coordinadores() {
           </button>
           <button
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-2 px-4 py-2 border border-indigo-200 bg-indigo-50 rounded-lg text-sm font-medium text-indigo-700 hover:bg-indigo-100 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 border border-brand-100 bg-brand-50 rounded-lg text-sm font-medium text-brand-700 hover:bg-brand-100 transition-colors"
           >
             <span>↓</span> Importar
           </button>
           <button
             onClick={() => setEditTarget({})}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg text-sm font-semibold hover:bg-brand-700 transition-colors"
           >
             <span>+</span> Agregar
           </button>
         </div>
       </div>
+
+      {/* Bento stats */}
+      {!loading && (
+        <div className="grid grid-cols-4 gap-3 mb-5">
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">Total</div>
+            <div className="text-4xl font-bold leading-none" style={{ color: '#c9a84c' }}>{coordinadores.length}</div>
+            <div className="text-xs text-stone-400 mt-1.5">coordinadores registrados</div>
+          </div>
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">Capacitados</div>
+            <div className="text-3xl font-bold text-green-600 leading-none">{coordinadores.filter(c => avg(c) === 100).length}</div>
+            <div className="text-xs text-stone-400 mt-1.5">100% en todos los países</div>
+          </div>
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">En proceso</div>
+            <div className="text-3xl font-bold text-amber-600 leading-none">{coordinadores.filter(c => avg(c) > 0 && avg(c) < 100).length}</div>
+            <div className="text-xs text-stone-400 mt-1.5">capacitación incompleta</div>
+          </div>
+          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
+            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-3">Promedio general</div>
+            <div className="text-3xl font-bold leading-none" style={{ color: '#4a6741' }}>
+              {coordinadores.length > 0 ? Math.round(coordinadores.reduce((sum, c) => sum + avg(c), 0) / coordinadores.length) : 0}%
+            </div>
+            <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden mt-3">
+              <div className="h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${coordinadores.length > 0 ? Math.round(coordinadores.reduce((sum, c) => sum + avg(c), 0) / coordinadores.length) : 0}%`, backgroundColor: '#4a6741' }} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Search + Filtros */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -249,7 +280,7 @@ export default function Coordinadores() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar coordinador..."
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 w-56"
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 w-56"
         />
         <div className="flex gap-1">
           {[
@@ -263,8 +294,8 @@ export default function Coordinadores() {
               onClick={() => setFilter(key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 filter === key
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300'
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-200'
               }`}
             >
               {label} <span className="opacity-70">({count})</span>
@@ -301,8 +332,8 @@ export default function Coordinadores() {
           onClick={() => setCountryFilter(null)}
           className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
             countryFilter === null
-              ? 'bg-indigo-600 text-white'
-              : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300'
+              ? 'bg-brand-600 text-white'
+              : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-200'
           }`}
         >
           Todos los países
@@ -315,8 +346,8 @@ export default function Coordinadores() {
               onClick={() => setCountryFilter(countryFilter === key ? null : key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 countryFilter === key
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-indigo-300'
+                  ? 'bg-brand-600 text-white'
+                  : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-200'
               }`}
             >
               {flag} {label} <span className="opacity-70">({count})</span>
@@ -335,9 +366,9 @@ export default function Coordinadores() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
         {!loading && (
-          <div className="px-4 py-2 border-b border-gray-100 bg-gray-50 text-xs text-gray-500 flex items-center gap-2">
+          <div className="px-4 py-2 border-b border-stone-100 bg-stone-50 text-xs text-stone-500 flex items-center gap-2">
             <span>Mostrando <strong className="text-gray-700">{filtered.length}</strong> coordinadores</span>
             <span className="text-gray-300">·</span>
             <span>Promedio general: <strong className="text-gray-700">{filtered.length > 0 ? Math.round(filtered.reduce((sum, c) => sum + avg(c), 0) / filtered.length) : 0}%</strong></span>

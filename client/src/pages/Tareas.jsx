@@ -66,8 +66,23 @@ function groupTasks(tasks) {
 
 function DelayBadge({ dias }) {
   if (dias === null || dias === undefined) return <span className="text-gray-300 text-xs">—</span>
-  if (dias <= 0) return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">En fecha</span>
-  return <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-medium">{dias}d</span>
+  if (dias <= 0) return (
+    <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: '#059669', background: 'rgba(5,150,105,0.09)', padding: '2px 7px', borderRadius: 20 }}>
+      En fecha
+    </span>
+  )
+  const isLate = dias > 30
+  const isNear = dias <= 5
+  return (
+    <span style={{
+      fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
+      color: isLate ? '#dc2626' : isNear ? '#d97706' : '#64748b',
+      background: isLate ? 'rgba(220,38,38,0.09)' : isNear ? 'rgba(217,119,6,0.09)' : 'rgba(0,0,0,0.05)',
+      padding: '2px 7px', borderRadius: 20,
+    }}>
+      {dias}d
+    </span>
+  )
 }
 
 function LinkCell({ url, title, icon }) {
@@ -145,25 +160,30 @@ function ReopenModal({ task, onConfirm, onCancel }) {
   )
 }
 
-const COUNTRY_COLORS = {
-  'argentina': 'bg-blue-50 text-blue-700 border-blue-100',
-  'bolivia':   'bg-green-50 text-green-700 border-green-100',
-  'chile':     'bg-red-50 text-red-700 border-red-100',
-  'ecuador':   'bg-yellow-50 text-yellow-700 border-yellow-100',
-  'paraguay':  'bg-indigo-50 text-indigo-700 border-indigo-100',
-  'peru':      'bg-red-50 text-red-800 border-red-200',
-  'uruguay':   'bg-sky-50 text-sky-700 border-sky-100',
-  'general':   'bg-gray-50 text-gray-700 border-gray-100',
-  'colombia':  'bg-orange-50 text-orange-700 border-orange-100',
-  'venezuela': 'bg-yellow-50 text-yellow-800 border-yellow-200',
+const COUNTRY_PALETTE = {
+  'argentina': { color: '#2563eb' },
+  'bolivia':   { color: '#059669' },
+  'chile':     { color: '#dc2626' },
+  'ecuador':   { color: '#b45309' },
+  'paraguay':  { color: '#7c3aed' },
+  'peru':      { color: '#be185d' },
+  'uruguay':   { color: '#0891b2' },
+  'general':   { color: '#64748b' },
+  'colombia':  { color: '#c2410c' },
+  'venezuela': { color: '#a16207' },
 }
 
 function CountryBadge({ pais }) {
   if (!pais || pais === '—') return <span className="text-gray-300">—</span>
   const key = pais.toLowerCase()
-  const colorClass = COUNTRY_COLORS[key] || 'bg-gray-50 text-gray-600 border-gray-100'
+  const { color } = COUNTRY_PALETTE[key] || { color: '#64748b' }
   return (
-    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border ${colorClass}`}>
+    <span style={{
+      fontSize: 9, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
+      color, background: color + '14', border: `1px solid ${color}22`,
+      padding: '2px 7px', borderRadius: 20, letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    }}>
       {pais}
     </span>
   )
@@ -252,12 +272,19 @@ function DraggableTaskRow({ task, children }) {
       ref={setRef}
       {...attributes}
       {...listeners}
-      className={`${rowHighlightClasses(task.prioridad)} bg-white rounded-xl border border-stone-200 shadow-sm flex items-start gap-2.5 px-3 py-2.5 cursor-grab active:cursor-grabbing
-        ${isDragging ? 'opacity-40 shadow-none' : 'hover:shadow-md hover:-translate-y-px'}
-        ${isOver && !isDragging ? 'ring-2 ring-brand-400 bg-brand-50/30' : ''}
+      className={`${rowHighlightClasses(task.prioridad)} rounded-lg flex items-start gap-1.5 px-2 py-1.5 cursor-grab active:cursor-grabbing
+        ${isDragging ? 'opacity-40 shadow-none' : 'hover:-translate-y-px'}
+        ${isOver && !isDragging ? 'ring-2 ring-brand-400' : ''}
         transition-shadow transition-transform duration-150`}
+      style={{
+        background: isDragging ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.78)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        border: '1px solid rgba(255,255,255,0.88)',
+        boxShadow: isDragging ? 'none' : '0 1px 4px rgba(0,0,0,0.06), 0 1px 10px rgba(0,0,0,0.03)',
+      }}
     >
-      <span className="text-stone-300 mt-0.5 shrink-0 select-none text-xs leading-none">
+      <span className="text-stone-300 mt-0.5 shrink-0 select-none text-[10px] leading-none">
         {isOver && !isDragging ? <span className="text-brand-600 font-bold">⊕</span> : '⠿'}
       </span>
       {children}
@@ -281,42 +308,34 @@ function UngroupedDropZone() {
 
 // ─── Board task card (compact, for Kanban columns) ────────────────────────────
 
-function BoardTaskCard({ task, onEdit, onDelete, indent }) {
+function BoardTaskCard({ task, onEdit, onDelete, onComplete, indent }) {
   const isCompleted = isFullyCompleted(task)
   return (
-    <div
-      className={`flex-1 min-w-0 ${indent ? 'pl-2' : ''}`}
-      onClick={() => onEdit(task)}
-      style={{ cursor: 'pointer' }}
-    >
-      <div className="flex items-start gap-1 mb-1.5">
-        <span className="text-sm font-medium text-stone-800 leading-snug line-clamp-2 flex-1">{task.tarea}</span>
-        {isCompleted && (
-          <span className="w-2 h-2 rounded-full bg-green-500 shrink-0 mt-1.5 ml-0.5" title="Listo para archivar" />
-        )}
-      </div>
-      <div className="flex items-center gap-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
-        <CountryBadge pais={task.pais} />
-        <DelayBadge dias={task.dias_retraso} />
-        {task.fecha_mail && (
-          <span className="text-[10px] text-stone-400">{task.fecha_mail}</span>
-        )}
-      </div>
-      <div className="flex items-center gap-1 mt-1.5" onClick={e => e.stopPropagation()}>
-        <LinkCell url={task.mail}      title="Mail"          icon="✉️" />
-        <LinkCell url={task.mail2}     title="Carpeta Drive" icon="📁" />
-        <LinkCell url={task.documento} title="Documento"     icon="📄" />
-        <div className="ml-auto flex gap-1">
-          <button
-            onClick={e => { e.stopPropagation(); onEdit(task) }}
-            className="text-stone-300 hover:text-brand-600 transition-colors text-xs"
-            title="Editar"
-          >✏️</button>
-          <button
-            onClick={e => { e.stopPropagation(); onDelete(task) }}
-            className="text-stone-300 hover:text-red-500 transition-colors text-xs"
-            title="Eliminar"
-          >🗑️</button>
+    <div className={`flex gap-1.5 flex-1 min-w-0 ${indent ? 'pl-1' : ''}`}>
+      {/* Botón completar */}
+      <button
+        onClick={e => { e.stopPropagation(); onComplete(task) }}
+        title="Marcar como Hecho"
+        className="shrink-0 mt-0.5 w-3.5 h-3.5 rounded-full border-2 border-stone-300 hover:border-green-500 hover:bg-green-50 transition-colors"
+      />
+
+      {/* Contenido: 2 filas */}
+      <div className="flex-1 min-w-0" onClick={() => onEdit(task)} style={{ cursor: 'pointer' }}>
+        {/* Fila 1: título */}
+        <div className="flex items-start gap-1 mb-1">
+          <span className="text-[11px] font-medium text-stone-800 leading-snug line-clamp-2 flex-1">{task.tarea}</span>
+          {isCompleted && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 mt-1" title="Listo para archivar" />}
+        </div>
+        {/* Fila 2: badges + links + acciones (todo en una línea) */}
+        <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
+          <CountryBadge pais={task.pais} />
+          <DelayBadge dias={task.dias_retraso} />
+          <span className="flex-1" />
+          <LinkCell url={task.mail}      title="Mail"          icon="✉️" />
+          <LinkCell url={task.mail2}     title="Carpeta Drive" icon="📁" />
+          <LinkCell url={task.documento} title="Documento"     icon="📄" />
+          <button onClick={e => { e.stopPropagation(); onEdit(task) }}   className="text-stone-300 hover:text-brand-600 transition-colors leading-none" title="Editar">✏️</button>
+          <button onClick={e => { e.stopPropagation(); onDelete(task) }} className="text-stone-300 hover:text-red-500 transition-colors leading-none"  title="Eliminar">🗑️</button>
         </div>
       </div>
     </div>
@@ -325,34 +344,106 @@ function BoardTaskCard({ task, onEdit, onDelete, indent }) {
 
 // ─── Board column ─────────────────────────────────────────────────────────────
 
-function BoardColumn({ prioridad, tasks, collapsedGroups, onToggleCollapse, onEdit, onDelete }) {
+function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, collapsedGroups, onToggleCollapse, onEdit, onDelete, onComplete }) {
   const { setNodeRef, isOver } = useDroppable({ id: `priority:${prioridad}` })
   const { groups, ungrouped } = groupTasks(tasks)
-  const headerStyle = COLUMN_HEADER_STYLES[prioridad] || 'bg-gray-100 text-gray-700 border-gray-200'
-  const borderStyle = COLUMN_BG_STYLES[prioridad] || 'border-gray-200'
+
+  const accentColor = {
+    'Urgente': '#dc2626', 'Alta': '#d97706', 'Firmando': '#7c3aed',
+    'Baja': '#059669', 'Solo documentación': '#64748b',
+  }[prioridad] || '#64748b'
+  const accentDim = {
+    'Urgente': 'rgba(220,38,38,0.07)', 'Alta': 'rgba(217,119,6,0.07)', 'Firmando': 'rgba(124,58,237,0.07)',
+    'Baja': 'rgba(5,150,105,0.07)', 'Solo documentación': 'rgba(100,116,139,0.06)',
+  }[prioridad] || 'rgba(100,116,139,0.06)'
+
+  if (isCollapsed) {
+    return (
+      <div
+        style={{
+          display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0,
+          width: 44, borderRadius: 16, cursor: 'pointer',
+          background: 'rgba(255,255,255,0.62)',
+          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.88)',
+          boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
+          borderTop: `2px solid ${accentColor}88`,
+          transition: 'all 0.15s',
+        }}
+        onClick={onToggleColumn}
+        title={`Expandir ${prioridad}`}
+      >
+        <div style={{
+          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '8px 0', borderBottom: '1px solid rgba(0,0,0,0.06)',
+        }}>
+          <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: accentColor }}>{tasks.length}</span>
+        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: accentColor, userSelect: 'none',
+            writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(180deg)',
+          }}>
+            {prioridad}
+          </span>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className={`flex flex-col min-w-[260px] w-[280px] shrink-0 rounded-2xl border ${borderStyle} bg-white/70 shadow-sm`}>
+    <div style={{
+      display: 'flex', flexDirection: 'column', flex: 1, minWidth: 200,
+      borderRadius: 16,
+      background: 'rgba(255,255,255,0.62)',
+      backdropFilter: 'blur(16px)',
+      WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(255,255,255,0.88)',
+      boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
+      borderTop: `2px solid ${accentColor}88`,
+    }}>
       {/* Column header */}
-      <div className={`flex items-center justify-between px-3 py-2 rounded-t-2xl border-b ${headerStyle}`}>
-        <span className="font-bold text-sm">{prioridad}</span>
-        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full bg-white/70 ${headerStyle.split(' ')[1]}`}>
-          {tasks.length}
-        </span>
-      </div>
+      <button
+        onClick={onToggleColumn}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '9px 13px', borderBottom: '1px solid rgba(0,0,0,0.06)',
+          width: '100%', textAlign: 'left', cursor: 'pointer',
+          background: 'transparent', borderRadius: '14px 14px 0 0',
+          transition: 'background 0.15s',
+        }}
+        title="Colapsar columna"
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{
+            width: 7, height: 7, borderRadius: '50%', background: accentColor,
+            boxShadow: `0 0 6px ${accentColor}88`,
+          }} />
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', letterSpacing: 0.1 }}>{prioridad}</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{
+            fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
+            color: accentColor, background: accentDim,
+            padding: '2px 8px', borderRadius: 20,
+          }}>{tasks.length}</span>
+          <span style={{ fontSize: 9, color: '#cbd5e1' }}>▲</span>
+        </div>
+      </button>
 
       {/* Droppable area */}
       <div
         ref={setNodeRef}
-        className={`flex-1 p-2 space-y-2 overflow-y-auto transition-colors ${
-          isOver ? 'bg-brand-50/40' : ''
-        }`}
-        style={{ maxHeight: 'calc(100vh - 300px)', minHeight: '80px' }}
+        className="flex-1 p-2 space-y-2 overflow-y-auto transition-colors"
+        style={{
+          maxHeight: 'calc(100vh - 300px)', minHeight: '80px',
+          background: isOver ? 'rgba(74,103,65,0.04)' : 'transparent',
+        }}
       >
         <AnimatePresence initial={false}>
           {ungrouped.map(task => (
             <DraggableTaskRow key={task.rowIndex} task={task}>
-              <BoardTaskCard task={task} onEdit={onEdit} onDelete={onDelete} />
+              <BoardTaskCard task={task} onEdit={onEdit} onDelete={onDelete} onComplete={onComplete} />
             </DraggableTaskRow>
           ))}
           {Object.keys(groups).length > 0 && <UngroupedDropZone />}
@@ -369,7 +460,7 @@ function BoardColumn({ prioridad, tasks, collapsedGroups, onToggleCollapse, onEd
                 <AnimatePresence initial={false}>
                   {!collapsed && tareas.map(task => (
                     <DraggableTaskRow key={task.rowIndex} task={task}>
-                      <BoardTaskCard task={task} onEdit={onEdit} onDelete={onDelete} indent />
+                      <BoardTaskCard task={task} onEdit={onEdit} onDelete={onDelete} onComplete={onComplete} indent />
                     </DraggableTaskRow>
                   ))}
                 </AnimatePresence>
@@ -378,7 +469,10 @@ function BoardColumn({ prioridad, tasks, collapsedGroups, onToggleCollapse, onEd
           })}
         </AnimatePresence>
         {tasks.length === 0 && (
-          <div className="text-center py-8 text-stone-300 text-xs select-none">Sin tareas</div>
+          <div style={{
+            textAlign: 'center', padding: '28px 12px', color: '#cbd5e1', fontSize: 12,
+            border: '1px dashed rgba(0,0,0,0.08)', borderRadius: 10, margin: '4px',
+          }}>Sin tareas</div>
         )}
       </div>
     </div>
@@ -387,20 +481,26 @@ function BoardColumn({ prioridad, tasks, collapsedGroups, onToggleCollapse, onEd
 
 // ─── Board container ──────────────────────────────────────────────────────────
 
-function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onEdit, onDelete }) {
+function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onEdit, onDelete, onComplete, collapsedColumns, onToggleColumn }) {
+
   return (
-    <div className="flex gap-3 overflow-x-auto pb-4 pt-1 px-1">
+    <div className="overflow-x-auto">
+    <div className="flex gap-3 pb-4 pt-1 px-4 min-w-0 w-full">
       {BOARD_PRIORITIES.map(prioridad => (
         <BoardColumn
           key={prioridad}
           prioridad={prioridad}
           tasks={pendientes.filter(t => t.prioridad === prioridad)}
+          isCollapsed={!!collapsedColumns[prioridad]}
+          onToggleColumn={() => onToggleColumn(prioridad)}
           collapsedGroups={collapsedGroups}
           onToggleCollapse={onToggleCollapse}
           onEdit={onEdit}
           onDelete={onDelete}
+          onComplete={onComplete}
         />
       ))}
+    </div>
     </div>
   )
 }
@@ -506,7 +606,14 @@ function TareasTable({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: 'easeOut', delay: idx * 0.03 }}
-          className={`${rowHighlightClasses(task.prioridad)} bg-white rounded-xl border border-stone-200 shadow-sm flex items-start gap-2.5 px-4 py-3 hover:shadow-md transition-shadow transition-transform duration-150 ${isFinalizados ? 'opacity-75' : ''}`}
+          className={`${rowHighlightClasses(task.prioridad)} rounded-xl flex items-start gap-2.5 px-4 py-3 transition-shadow transition-transform duration-150 ${isFinalizados ? 'opacity-75' : ''}`}
+          style={{
+            background: 'rgba(255,255,255,0.75)',
+            backdropFilter: 'blur(14px)',
+            WebkitBackdropFilter: 'blur(14px)',
+            border: '1px solid rgba(255,255,255,0.88)',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+          }}
         >
           <div className="w-3 shrink-0" />
           <TaskCard
@@ -762,6 +869,7 @@ export default function Tareas() {
   const [paisFilter, setPaisFilter]     = useState('Todos')
   const [sortBy, setSortBy]             = useState('prioridad')
   const [archiveTask, setArchiveTask]   = useState(null)
+  const [completeTask, setCompleteTask] = useState(null)
   const [reopenTask, setReopenTask]     = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [automationLoading, setAutomationLoading] = useState(false)
@@ -770,6 +878,7 @@ export default function Tareas() {
   const [deleteTask, setDeleteTask]     = useState(null)
   const [automationResult, setAutomationResult] = useState(null)
   const [activeId, setActiveId]         = useState(null)
+  const [clockTime, setClockTime]       = useState(new Date())
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -778,7 +887,12 @@ export default function Tareas() {
   const [collapsedGroups, setCollapsedGroups] = useState(() => {
     try { return JSON.parse(localStorage.getItem('tareas_collapsedGroups') || '{}') } catch { return {} }
   })
+  const [collapsedColumns, setCollapsedColumns] = useState({})
   const [pendingGroup, setPendingGroup] = useState(null)
+
+  function toggleColumn(prioridad) {
+    setCollapsedColumns(prev => ({ ...prev, [prioridad]: !prev[prioridad] }))
+  }
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
@@ -801,6 +915,10 @@ export default function Tareas() {
   }, [])
 
   useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    const id = setInterval(() => setClockTime(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
   async function handleRunAutomation() {
     if (automationLoading) return
@@ -809,14 +927,19 @@ export default function Tareas() {
     const prevRowIndices = new Set(pendientes.map(t => t.rowIndex))
     try {
       const res = await fetch('/api/tareas/automatizar', { method: 'POST' })
+      if (!res.ok) {
+        const text = await res.text()
+        let msg = `Error ${res.status}`
+        try { msg = JSON.parse(text).error || msg } catch { }
+        throw new Error(msg)
+      }
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error al ejecutar automatización')
 
-      const [pRes] = await Promise.all([
+      const [pRes, fRes] = await Promise.all([
         fetch('/api/tareas', { cache: 'no-store' }),
         fetch('/api/tareas/finalizados', { cache: 'no-store' }),
       ])
-      const [newPendientes, newFinalizados] = await Promise.all([pRes.json(), fetch('/api/tareas/finalizados', { cache: 'no-store' }).then(r => r.json())])
+      const [newPendientes, newFinalizados] = await Promise.all([pRes.json(), fRes.json()])
       setPendientes(newPendientes)
       setFinalizados(newFinalizados)
       setLastSync(new Date())
@@ -853,7 +976,12 @@ export default function Tareas() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ field: 'prioridad', value: newPrioridad }),
       })
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error) }
+      if (!res.ok) {
+        const text = await res.text()
+        let msg = `Error ${res.status}`
+        try { msg = JSON.parse(text).error || msg } catch { /* HTML response */ }
+        throw new Error(msg)
+      }
       setPendientes(prev => prev.map(t =>
         t.rowIndex === task.rowIndex ? { ...t, prioridad: newPrioridad } : t
       ))
@@ -896,8 +1024,7 @@ export default function Tareas() {
     if (!deleteTask || actionLoading) return
     setActionLoading(true)
     try {
-      const isFromFinalizados = finalizados.some(t => t.rowIndex === deleteTask.rowIndex)
-      const url = isFromFinalizados
+      const url = deleteTask._source === 'finalizados'
         ? `/api/tareas/finalizados/${deleteTask.rowIndex}`
         : `/api/tareas/${deleteTask.rowIndex}`
       const res = await fetch(url, { method: 'DELETE' })
@@ -1067,16 +1194,30 @@ export default function Tareas() {
       {/* Header */}
       <div className="mb-4 flex items-center justify-between gap-4 max-w-5xl mx-auto">
         <div>
-          <h2 className="text-xl font-bold" style={{ color: '#1c2711' }}>Tareas pendientes</h2>
-          {lastSyncText && (
-            <p className="text-xs text-stone-400 mt-0.5">Sincronizado a las {lastSyncText}</p>
-          )}
+          <div className="flex items-baseline gap-3">
+            <h2 className="text-xl font-bold" style={{ color: '#1c2711' }}>Tareas pendientes</h2>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#94a3b8' }}>
+              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 2s ease-in-out infinite' }} />
+              {clockTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </div>
+          </div>
+          <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#cbd5e1', marginTop: 2, letterSpacing: 1 }}>
+            NODO SUR · GESTIÓN OPERATIVA{lastSyncText && ` · sync ${lastSyncText}`}
+          </p>
+          <style>{`@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
         </div>
         <div className="flex gap-2">
           <button
             onClick={handleRunAutomation}
             disabled={automationLoading}
-            className={`flex items-center gap-1.5 px-3 py-1.5 border border-brand-100 text-brand-700 text-sm font-semibold rounded-lg hover:bg-brand-50 transition-colors disabled:opacity-50 ${automationLoading ? 'animate-pulse' : ''}`}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 8,
+              border: '1px solid rgba(0,0,0,0.08)',
+              background: 'rgba(255,255,255,0.72)',
+              color: '#64748b', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              opacity: automationLoading ? 0.6 : 1,
+            }}
           >
             {automationLoading ? (
               <><span className="animate-spin inline-block text-xs">🧠</span>IA Analizando...</>
@@ -1085,18 +1226,31 @@ export default function Tareas() {
             )}
           </button>
           <button
-            onClick={() => setShowNewTask(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-600 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition-colors"
-          >
-            + Nueva tarea
-          </button>
-          <button
             onClick={fetchAll}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '6px 14px', borderRadius: 8,
+              border: '1px solid rgba(0,0,0,0.08)',
+              background: 'rgba(255,255,255,0.72)',
+              color: '#64748b', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              opacity: loading ? 0.5 : 1,
+            }}
           >
             <span className={loading ? 'animate-spin inline-block' : ''}>↻</span>
             Actualizar
+          </button>
+          <button
+            onClick={() => setShowNewTask(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: 'linear-gradient(135deg, #4a6741, #3d5636)',
+              color: '#fff', fontSize: 12, fontWeight: 700,
+              boxShadow: '0 4px 14px rgba(74,103,65,0.3)',
+            }}
+          >
+            + Nueva tarea
           </button>
         </div>
       </div>
@@ -1104,40 +1258,31 @@ export default function Tareas() {
       {/* Bento stats */}
       {!loading && (
         <div className="grid grid-cols-4 gap-3 mb-5 max-w-5xl mx-auto">
-          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
-            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">Total activas</div>
-            <div className="text-4xl font-bold leading-none" style={{ color: '#c9a84c' }}>{pendientes.length}</div>
-            <div className="text-xs text-stone-400 mt-1.5">tareas pendientes</div>
-          </div>
-          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
-            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">Urgentes</div>
-            <div className="text-3xl font-bold text-red-600 leading-none">{pendientes.filter(t => t.prioridad === 'Urgente').length}</div>
-            <div className="text-xs text-stone-400 mt-1.5">requieren atención inmediata</div>
-          </div>
-          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
-            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-1">En retraso</div>
-            <div className="text-3xl font-bold text-amber-600 leading-none">{pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length}</div>
-            <div className="text-xs text-stone-400 mt-1.5">fuera de fecha límite</div>
-          </div>
-          <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-sm">
-            <div className="text-[10px] text-stone-400 uppercase tracking-widest mb-3">Distribución</div>
-            <div className="space-y-1.5">
-              {[
-                { label: 'Urgente', value: pendientes.filter(t => t.prioridad === 'Urgente').length, color: '#dc2626' },
-                { label: 'Alta',    value: pendientes.filter(t => t.prioridad === 'Alta').length,    color: '#f59e0b' },
-                { label: 'Baja',    value: pendientes.filter(t => t.prioridad === 'Baja').length,    color: '#4a6741' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <span className="w-10 text-[10px] text-stone-500 shrink-0">{label}</span>
-                  <div className="flex-1 bg-stone-100 rounded-full h-1.5 overflow-hidden">
-                    <div className="h-1.5 rounded-full transition-all duration-500"
-                      style={{ width: pendientes.length > 0 ? `${Math.round(value / pendientes.length * 100)}%` : '0%', backgroundColor: color }} />
-                  </div>
-                  <span className="w-4 text-[10px] text-stone-400 text-right">{value}</span>
-                </div>
-              ))}
+          {[
+            { label: 'Total activas',  value: pendientes.length,                                               sub: 'tareas pendientes',        accent: '#c9a84c' },
+            { label: 'Urgentes',       value: pendientes.filter(t => t.prioridad === 'Urgente').length,        sub: 'atención inmediata',       accent: '#dc2626' },
+            { label: 'En retraso',     value: pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length,       sub: 'fuera de fecha límite',    accent: '#d97706' },
+            { label: 'Finalizadas',    value: finalizados.length,                                              sub: 'tareas archivadas',        accent: '#7c3aed' },
+          ].map(({ label, value, sub, accent }) => (
+            <div key={label} style={{
+              background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(18px)',
+              WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.9)',
+              borderRadius: 16, padding: '18px 20px', position: 'relative', overflow: 'hidden',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+            }}>
+              <div style={{
+                position: 'absolute', top: -24, right: -24, width: 90, height: 90,
+                borderRadius: '50%', background: accent, opacity: 0.1, filter: 'blur(24px)', pointerEvents: 'none',
+              }} />
+              <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
+                {label}
+              </div>
+              <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1, color: accent, letterSpacing: -2 }}>
+                {value}
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>{sub}</div>
             </div>
-          </div>
+          ))}
         </div>
       )}
 
@@ -1150,64 +1295,86 @@ export default function Tareas() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-4 bg-stone-100 p-1 rounded-xl w-fit max-w-5xl mx-auto">
+      <div style={{
+        display: 'inline-flex', padding: 3, borderRadius: 10, marginBottom: 16,
+        background: 'rgba(255,255,255,0.65)',
+        border: '1px solid rgba(0,0,0,0.07)',
+      }}>
         {[
-          { key: 'pendientes', label: `Pendientes (${boardPendientes.length})` },
-          { key: 'hecho', label: `Hecho / Finalizados${(hechoCount + finalizados.length) ? ` (${hechoCount + finalizados.length})` : ''}` },
-        ].map(({ key, label }) => (
+          { key: 'pendientes', label: 'Pendientes', count: boardPendientes.length },
+          { key: 'hecho', label: 'Hecho / Finalizados', count: hechoCount + finalizados.length },
+        ].map(({ key, label, count }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-              tab === key
-                ? 'bg-white text-stone-800 shadow-sm'
-                : 'text-stone-500 hover:text-stone-700'
-            }`}
+            style={{
+              padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: tab === key ? '#fff' : 'transparent',
+              color: tab === key ? '#0f172a' : '#94a3b8',
+              fontSize: 12, fontWeight: tab === key ? 600 : 400,
+              display: 'flex', alignItems: 'center', gap: 7,
+              boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s',
+            }}
           >
             {label}
+            {count > 0 && (
+              <span style={{
+                fontSize: 10, fontFamily: 'JetBrains Mono, monospace',
+                padding: '1px 6px', borderRadius: 20,
+                background: tab === key ? '#f1f5f9' : 'rgba(0,0,0,0.05)',
+                color: tab === key ? '#64748b' : '#cbd5e1',
+              }}>{count}</span>
+            )}
           </button>
         ))}
       </div>
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3 mb-4 max-w-5xl mx-auto">
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-gray-500">País</label>
-          <select
-            value={paisFilter}
-            onChange={e => setPaisFilter(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-brand-400"
+        <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#cbd5e1' }}>ORDENAR</span>
+        {[
+          { key: 'prioridad', label: 'Prioridad' },
+          { key: 'fecha',     label: 'Fecha' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSortBy(key)}
+            style={{
+              padding: '5px 12px', borderRadius: 7, cursor: 'pointer',
+              background: sortBy === key ? '#fff' : 'transparent',
+              color: sortBy === key ? '#0f172a' : '#94a3b8',
+              fontSize: 11, fontWeight: sortBy === key ? 600 : 400,
+              border: sortBy === key ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
+              boxShadow: sortBy === key ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
+              transition: 'all 0.15s',
+            }}
           >
-            {PAIS_OPTIONS.map(p => <option key={p}>{p}</option>)}
-          </select>
-        </div>
+            {label}
+          </button>
+        ))}
+        <div style={{ width: 1, height: 14, background: 'rgba(0,0,0,0.1)' }} />
+        <select
+          value={paisFilter}
+          onChange={e => setPaisFilter(e.target.value)}
+          style={{
+            background: 'rgba(255,255,255,0.72)',
+            border: '1px solid rgba(0,0,0,0.08)',
+            color: '#64748b', fontSize: 11,
+            padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}
+        >
+          {PAIS_OPTIONS.map(p => <option key={p}>{p}</option>)}
+        </select>
         {paisFilter !== 'Todos' && (
           <button
             onClick={() => setPaisFilter('Todos')}
-            className="text-xs text-gray-400 hover:text-gray-600 underline"
+            style={{ fontSize: 10, color: '#94a3b8', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
           >
-            Limpiar filtro
+            Limpiar
           </button>
         )}
-        <div className="flex items-center gap-1.5 ml-auto">
-          <span className="text-xs text-gray-400 font-medium">Ordenar:</span>
-          {[
-            { key: 'prioridad', label: 'Prioridad' },
-            { key: 'fecha',     label: 'Fecha' },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setSortBy(key)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                sortBy === key
-                  ? 'bg-gray-800 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-400'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {/* Contenido */}
@@ -1228,7 +1395,10 @@ export default function Tareas() {
             collapsedGroups={collapsedGroups}
             onToggleCollapse={toggleCollapse}
             onEdit={setEditTask}
-            onDelete={setDeleteTask}
+            onDelete={task => setDeleteTask({ ...task, _source: 'pendientes' })}
+            onComplete={task => setCompleteTask(task)}
+            collapsedColumns={collapsedColumns}
+            onToggleColumn={toggleColumn}
           />
           <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
             {activeId ? (() => {
@@ -1268,7 +1438,7 @@ export default function Tareas() {
                   onFieldChange={handleFieldChange}
                   onArchive={task => setArchiveTask(task)}
                   onEdit={setEditTask}
-                  onDelete={setDeleteTask}
+                  onDelete={task => setDeleteTask({ ...task, _source: 'pendientes' })}
                 />
               </div>
             </div>
@@ -1286,8 +1456,38 @@ export default function Tareas() {
                 isFinalizados
                 onReopen={setReopenTask}
                 onEdit={setEditTask}
-                onDelete={setDeleteTask}
+                onDelete={task => setDeleteTask({ ...task, _source: 'finalizados' })}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: confirmar marcar como Hecho */}
+      {completeTask && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="text-2xl mb-3 text-center">✅</div>
+            <h3 className="text-base font-bold text-gray-900 text-center mb-2">Marcar como Hecho</h3>
+            <p className="text-sm font-medium text-gray-800 text-center mb-2 px-2">
+              "{completeTask.tarea}"
+            </p>
+            <p className="text-sm text-gray-500 text-center mb-5">
+              La tarea pasará a <strong>Hecho / Finalizados</strong> y saldrá del tablero.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCompleteTask(null)}
+                className="flex-1 px-4 py-2 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { patchPrioridad(completeTask, 'Hecho'); setCompleteTask(null) }}
+                className="flex-1 px-4 py-2 rounded-lg bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+              >
+                Confirmar
+              </button>
             </div>
           </div>
         </div>

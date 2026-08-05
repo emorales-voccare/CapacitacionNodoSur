@@ -6,6 +6,44 @@ import Documentacion from './pages/Documentacion'
 
 const PAGES = { dashboard: Dashboard, coordinadores: Coordinadores, tareas: Tareas, documentacion: Documentacion }
 
+function MeshBackground() {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+      <div style={{
+        position: 'absolute', top: '-10%', left: '-8%',
+        width: 640, height: 640, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(74,103,65,0.14) 0%, transparent 68%)',
+        filter: 'blur(70px)',
+        animation: 'drift1 22s ease-in-out infinite',
+      }} />
+      <div style={{
+        position: 'absolute', top: '30%', right: '-12%',
+        width: 520, height: 520, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 68%)',
+        filter: 'blur(80px)',
+        animation: 'drift2 26s ease-in-out infinite',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '-12%', left: '35%',
+        width: 480, height: 480, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(74,103,65,0.1) 0%, transparent 68%)',
+        filter: 'blur(80px)',
+        animation: 'drift3 18s ease-in-out infinite',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: 'radial-gradient(circle, rgba(100,116,139,0.1) 1px, transparent 1px)',
+        backgroundSize: '28px 28px',
+      }} />
+      <style>{`
+        @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,-30px) scale(1.05)} }
+        @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,22px) scale(0.96)} }
+        @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(18px,36px) scale(1.04)} }
+      `}</style>
+    </div>
+  )
+}
+
 export default function App() {
   const [page, setPage] = useState('tareas')
   const [coordOpen, setCoordOpen] = useState(false)
@@ -51,12 +89,14 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f7f6f1]">
+    <div className="flex h-screen overflow-hidden bg-[#f0f2f8]" style={{ position: 'relative' }}>
+      <MeshBackground />
 
       {/* Backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-20 bg-black/30 backdrop-blur-[2px] transition-opacity"
+          className="fixed inset-0 bg-black/30 backdrop-blur-[2px] transition-opacity"
+          style={{ zIndex: 20 }}
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -168,13 +208,20 @@ export default function App() {
       </aside>
 
       {/* Content — siempre full width */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto" style={{ position: 'relative', zIndex: 1 }}>
         {/* Top bar con botón hamburguesa */}
-        <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3 border-b border-stone-200"
-          style={{ background: 'linear-gradient(to right, #1c2711, #243318)' }}>
+        <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3 border-b"
+          style={{
+            background: 'rgba(255,255,255,0.72)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderColor: 'rgba(0,0,0,0.07)',
+            boxShadow: '0 1px 12px rgba(0,0,0,0.05)',
+          }}>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-brand-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-brand-800"
+            className="transition-colors p-1.5 rounded-lg"
+            style={{ color: '#4a6741', background: 'rgba(74,103,65,0.08)' }}
             title="Abrir menú"
           >
             <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
@@ -182,9 +229,15 @@ export default function App() {
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-white text-sm tracking-tight">Nodo Sur</span>
-            <span className="text-brand-600 text-sm">·</span>
-            <span className="text-brand-400 text-sm capitalize">{page}</span>
+            <div style={{
+              width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+              background: 'linear-gradient(135deg, #4a6741, #c9a84c)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 800, color: '#fff',
+            }}>N</div>
+            <span className="font-bold text-sm tracking-tight" style={{ color: '#1c2711' }}>Nodo Sur</span>
+            <span className="text-stone-300 text-sm">·</span>
+            <span className="text-sm capitalize" style={{ color: '#64748b' }}>{page}</span>
           </div>
         </div>
 

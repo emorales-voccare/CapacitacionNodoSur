@@ -467,6 +467,7 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
       style={{
         flex: isCollapsed ? '0 0 48px' : '1 1 0px',
         minWidth: isCollapsed ? 48 : 200,
+        maxWidth: isCollapsed ? 48 : 520,
         width: isCollapsed ? 48 : undefined,
         borderRadius: 16, overflow: 'hidden',
         background: 'rgba(255,255,255,0.68)',
@@ -606,7 +607,7 @@ function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onOpenDeta
   const visiblePriorities = BOARD_PRIORITIES.filter(p => !hiddenColumns[p])
   return (
     <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-      <div style={{ display: 'flex', gap: 10, padding: '4px 0 16px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 10, padding: '4px 0 16px', alignItems: 'flex-start', justifyContent: 'center' }}>
         <AnimatePresence initial={false}>
           {visiblePriorities.map(prioridad => (
             <BoardColumn

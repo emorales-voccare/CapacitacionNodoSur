@@ -453,19 +453,22 @@ function TaskDetailModal({ task, isFinalizados, onClose, onFieldChange, onComple
 
 // ─── Board column ─────────────────────────────────────────────────────────────
 
-function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, collapsedGroups, onToggleCollapse, onOpenDetail }) {
+function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHidden, collapsedGroups, onToggleCollapse, onOpenDetail }) {
   const { setNodeRef, isOver } = useDroppable({ id: `priority:${prioridad}` })
   const { groups, ungrouped } = groupTasks(tasks)
   const { color: accent, dim: accentDim } = ACCENT_MAP[prioridad] || { color: '#64748b', dim: 'rgba(100,116,139,0.06)' }
 
   return (
     <motion.div
-      layout
-      initial={false}
-      animate={{ width: isCollapsed ? 48 : 256 }}
-      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      initial={{ opacity: 0, scaleY: 0.9 }}
+      animate={{ opacity: 1, scaleY: 1 }}
+      exit={{ opacity: 0, scaleY: 0 }}
+      transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
       style={{
-        flexShrink: 0, borderRadius: 16, overflow: 'hidden',
+        flex: isCollapsed ? '0 0 48px' : '1 1 0px',
+        minWidth: isCollapsed ? 48 : 200,
+        width: isCollapsed ? 48 : undefined,
+        borderRadius: 16, overflow: 'hidden',
         background: 'rgba(255,255,255,0.68)',
         backdropFilter: 'blur(18px)',
         WebkitBackdropFilter: 'blur(18px)',
@@ -474,6 +477,8 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, collapsedG
         borderTop: `2.5px solid ${accent}`,
         display: 'flex', flexDirection: 'column',
         alignSelf: 'flex-start',
+        transformOrigin: 'top center',
+        transition: 'flex 0.3s ease, min-width 0.3s ease, width 0.3s ease',
       }}
     >
       {/* Header — siempre visible */}
@@ -505,9 +510,23 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, collapsedG
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: accent, boxShadow: `0 0 7px ${accent}99`, flexShrink: 0 }} />
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', letterSpacing: 0.1 }}>{prioridad}</span>
               </div>
-              <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: accent, background: accentDim, padding: '2px 8px', borderRadius: 20 }}>
-                {tasks.length}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: accent, background: accentDim, padding: '2px 8px', borderRadius: 20 }}>
+                  {tasks.length}
+                </span>
+                <button
+                  onClick={e => { e.stopPropagation(); onToggleHidden() }}
+                  title="Ocultar columna"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, color: '#cbd5e1', display: 'flex', alignItems: 'center', lineHeight: 1, flexShrink: 0 }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#94a3b8'}
+                  onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -583,22 +602,26 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, collapsedG
 
 // ─── Board container ──────────────────────────────────────────────────────────
 
-function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onOpenDetail, collapsedColumns, onToggleColumn }) {
+function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onOpenDetail, collapsedColumns, onToggleColumn, hiddenColumns, onToggleHidden }) {
+  const visiblePriorities = BOARD_PRIORITIES.filter(p => !hiddenColumns[p])
   return (
     <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
-      <div style={{ display: 'flex', gap: 10, padding: '4px 0 24px', alignItems: 'flex-start', width: 'max-content' }}>
-        {BOARD_PRIORITIES.map(prioridad => (
-          <BoardColumn
-            key={prioridad}
-            prioridad={prioridad}
-            tasks={pendientes.filter(t => t.prioridad === prioridad)}
-            isCollapsed={!!collapsedColumns[prioridad]}
-            onToggleColumn={() => onToggleColumn(prioridad)}
-            collapsedGroups={collapsedGroups}
-            onToggleCollapse={onToggleCollapse}
-            onOpenDetail={onOpenDetail}
-          />
-        ))}
+      <div style={{ display: 'flex', gap: 10, padding: '4px 0 16px', alignItems: 'flex-start' }}>
+        <AnimatePresence initial={false}>
+          {visiblePriorities.map(prioridad => (
+            <BoardColumn
+              key={prioridad}
+              prioridad={prioridad}
+              tasks={pendientes.filter(t => t.prioridad === prioridad)}
+              isCollapsed={!!collapsedColumns[prioridad]}
+              onToggleColumn={() => onToggleColumn(prioridad)}
+              onToggleHidden={() => onToggleHidden(prioridad)}
+              collapsedGroups={collapsedGroups}
+              onToggleCollapse={onToggleCollapse}
+              onOpenDetail={onOpenDetail}
+            />
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   )
@@ -991,10 +1014,21 @@ export default function Tareas() {
     try { return JSON.parse(localStorage.getItem('tareas_collapsedGroups') || '{}') } catch { return {} }
   })
   const [collapsedColumns, setCollapsedColumns] = useState({})
+  const [hiddenColumns, setHiddenColumns] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('tareas_hiddenColumns') || '{}') } catch { return {} }
+  })
   const [pendingGroup, setPendingGroup] = useState(null)
 
   function toggleColumn(prioridad) {
     setCollapsedColumns(prev => ({ ...prev, [prioridad]: !prev[prioridad] }))
+  }
+
+  function toggleHidden(prioridad) {
+    setHiddenColumns(prev => {
+      const next = { ...prev, [prioridad]: !prev[prioridad] }
+      localStorage.setItem('tareas_hiddenColumns', JSON.stringify(next))
+      return next
+    })
   }
 
   const fetchAll = useCallback(async () => {
@@ -1509,7 +1543,35 @@ export default function Tareas() {
             onOpenDetail={task => setDetailInfo({ rowIndex: task.rowIndex, source: 'pendientes' })}
             collapsedColumns={collapsedColumns}
             onToggleColumn={toggleColumn}
+            hiddenColumns={hiddenColumns}
+            onToggleHidden={toggleHidden}
           />
+          {BOARD_PRIORITIES.some(p => hiddenColumns[p]) && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingLeft: 2, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#cbd5e1', letterSpacing: 1 }}>OCULTAS</span>
+              {BOARD_PRIORITIES.filter(p => hiddenColumns[p]).map(p => {
+                const { color: accent } = ACCENT_MAP[p] || { color: '#64748b' }
+                return (
+                  <button
+                    key={p}
+                    onClick={() => toggleHidden(p)}
+                    title={`Mostrar ${p}`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px',
+                      borderRadius: 20, cursor: 'pointer', border: `1px solid ${accent}30`,
+                      background: `${accent}0d`, color: accent, fontSize: 10, fontWeight: 600,
+                    }}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                    {p}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
             {activeId ? (() => {
               const task = pendientes.find(t => String(t.rowIndex) === String(activeId))

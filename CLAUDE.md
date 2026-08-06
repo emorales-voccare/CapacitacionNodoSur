@@ -125,6 +125,12 @@ The Coordinadores page also supports local `.xlsx` download using `xlsx-js-style
 
 Note: `xlsx` (root `dependencies`) is used server-side for export. `xlsx-js-style` (`client/dependencies`) is the client-side counterpart — they are separate packages.
 
+`@dnd-kit/sortable` is listed in `client/package.json` but is **not used** — DnD relies only on `@dnd-kit/core` primitives directly.
+
+`node-fetch` is pinned to **v2** (CommonJS). v3+ is ESM-only and would require converting the backend to ESM.
+
+`dotenv` is a `devDependency` and is explicitly skipped in production (`if (process.env.NODE_ENV !== 'production') require('dotenv').config()` in `server/index.js`). In production, env vars must be set in the hosting environment (Render).
+
 ## Styling
 
 Tailwind CSS is loaded via CDN in `client/index.html` (not installed as a package). A custom `brand` color palette (indigo-based) is defined inline in that same script block.

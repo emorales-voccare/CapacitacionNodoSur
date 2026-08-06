@@ -15,20 +15,12 @@ const FIELD_OPTIONS = {
 
 const PRIORITY_ORDER = { 'Urgente': 0, 'Alta': 1, 'Firmando': 1.5, 'Baja': 2, 'Solo documentación': 2.5, 'Hecho': 3, '': 4 }
 
-const COLUMN_HEADER_STYLES = {
-  'Urgente':            'bg-red-100 text-red-700 border-red-200',
-  'Alta':               'bg-orange-100 text-orange-700 border-orange-200',
-  'Firmando':           'bg-yellow-100 text-yellow-700 border-yellow-200',
-  'Baja':               'bg-green-100 text-green-700 border-green-200',
-  'Solo documentación': 'bg-blue-100 text-blue-700 border-blue-200',
-}
-
-const COLUMN_BG_STYLES = {
-  'Urgente':            'border-red-200',
-  'Alta':               'border-orange-200',
-  'Firmando':           'border-yellow-200',
-  'Baja':               'border-green-200',
-  'Solo documentación': 'border-blue-200',
+const ACCENT_MAP = {
+  'Urgente':            { color: '#dc2626', dim: 'rgba(220,38,38,0.08)' },
+  'Alta':               { color: '#d97706', dim: 'rgba(217,119,6,0.08)' },
+  'Firmando':           { color: '#7c3aed', dim: 'rgba(124,58,237,0.07)' },
+  'Baja':               { color: '#059669', dim: 'rgba(5,150,105,0.07)' },
+  'Solo documentación': { color: '#64748b', dim: 'rgba(100,116,139,0.06)' },
 }
 
 function isFullyCompleted(task) {
@@ -257,37 +249,56 @@ function GroupHeaderRow({ nombre, tareas, collapsed, onToggle }) {
   )
 }
 
-function DraggableTaskRow({ task, children }) {
+function DraggableTaskRow({ task, onOpenDetail, indent }) {
   const { attributes, listeners, setNodeRef: setDragRef, isDragging } = useDraggable({ id: String(task.rowIndex) })
   const { setNodeRef: setDropRef, isOver } = useDroppable({ id: String(task.rowIndex) })
   const setRef = useCallback(node => { setDragRef(node); setDropRef(node) }, [setDragRef, setDropRef])
+  const [hovered, setHovered] = useState(false)
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6, scale: 0.98 }}
+      animate={{ opacity: isDragging ? 0.45 : 1, y: 0 }}
+      exit={{ opacity: 0, y: -4, scale: 0.97 }}
       transition={{ duration: 0.18, ease: 'easeOut' }}
       ref={setRef}
       {...attributes}
-      {...listeners}
-      className={`${rowHighlightClasses(task.prioridad)} rounded-lg flex items-start gap-1.5 px-2 py-1.5 cursor-grab active:cursor-grabbing
-        ${isDragging ? 'opacity-40 shadow-none' : 'hover:-translate-y-px'}
-        ${isOver && !isDragging ? 'ring-2 ring-brand-400' : ''}
-        transition-shadow transition-transform duration-150`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`${rowHighlightClasses(task.prioridad)} rounded-lg flex overflow-hidden
+        ${isOver && !isDragging ? 'ring-2 ring-brand-400/60' : ''}`}
       style={{
-        background: isDragging ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.78)',
+        background: isDragging ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.82)',
         backdropFilter: 'blur(14px)',
         WebkitBackdropFilter: 'blur(14px)',
-        border: '1px solid rgba(255,255,255,0.88)',
-        boxShadow: isDragging ? 'none' : '0 1px 4px rgba(0,0,0,0.06), 0 1px 10px rgba(0,0,0,0.03)',
+        border: '1px solid rgba(255,255,255,0.9)',
+        boxShadow: isDragging
+          ? '0 12px 32px rgba(0,0,0,0.2)'
+          : hovered
+            ? '0 4px 18px rgba(0,0,0,0.1)'
+            : '0 1px 4px rgba(0,0,0,0.06)',
+        transform: !isDragging && hovered ? 'translateY(-1px)' : 'translateY(0)',
+        transition: 'box-shadow 0.18s ease, transform 0.15s ease',
       }}
     >
-      <span className="text-stone-300 mt-0.5 shrink-0 select-none text-[10px] leading-none">
-        {isOver && !isDragging ? <span className="text-brand-600 font-bold">⊕</span> : '⠿'}
-      </span>
-      {children}
+      {/* Drag handle separado — evita conflicto con onClick del contenido */}
+      <div
+        {...listeners}
+        className="flex items-center px-1.5 shrink-0 select-none hover:bg-black/5 transition-colors cursor-grab active:cursor-grabbing"
+        style={{ touchAction: 'none', color: isOver && !isDragging ? '#4a6741' : '#cbd5e1' }}
+        title="Arrastrar"
+      >
+        <span className="text-[10px] leading-none">{isOver && !isDragging ? '⊕' : '⠿'}</span>
+      </div>
+
+      {/* Contenido clickeable → abre modal de detalle */}
+      <div
+        className={`flex-1 min-w-0 py-2 pr-2 cursor-pointer ${indent ? 'pl-1' : ''}`}
+        onClick={() => onOpenDetail(task)}
+      >
+        <BoardTaskCard task={task} indent={indent} />
+      </div>
     </motion.div>
   )
 }
@@ -306,201 +317,289 @@ function UngroupedDropZone() {
   )
 }
 
-// ─── Board task card (compact, for Kanban columns) ────────────────────────────
+// ─── Board task card (simplified — click opens detail modal) ──────────────────
 
-function BoardTaskCard({ task, onEdit, onDelete, onComplete, indent }) {
+function BoardTaskCard({ task, indent }) {
   const isCompleted = isFullyCompleted(task)
   return (
-    <div className={`flex gap-1.5 flex-1 min-w-0 ${indent ? 'pl-1' : ''}`}>
-      {/* Botón completar */}
-      <button
-        onClick={e => { e.stopPropagation(); onComplete(task) }}
-        title="Marcar como Hecho"
-        className="shrink-0 mt-0.5 w-3.5 h-3.5 rounded-full border-2 border-stone-300 hover:border-green-500 hover:bg-green-50 transition-colors"
-      />
-
-      {/* Contenido: 2 filas */}
-      <div className="flex-1 min-w-0" onClick={() => onEdit(task)} style={{ cursor: 'pointer' }}>
-        {/* Fila 1: título */}
-        <div className="flex items-start gap-1 mb-1">
-          <span className="text-[11px] font-medium text-stone-800 leading-snug line-clamp-2 flex-1">{task.tarea}</span>
-          {isCompleted && <span className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0 mt-1" title="Listo para archivar" />}
-        </div>
-        {/* Fila 2: badges + links + acciones (todo en una línea) */}
-        <div className="flex items-center gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
-          <CountryBadge pais={task.pais} />
-          <DelayBadge dias={task.dias_retraso} />
-          <span className="flex-1" />
-          <LinkCell url={task.mail}      title="Mail"          icon="✉️" />
-          <LinkCell url={task.mail2}     title="Carpeta Drive" icon="📁" />
-          <LinkCell url={task.documento} title="Documento"     icon="📄" />
-          <button onClick={e => { e.stopPropagation(); onEdit(task) }}   className="text-stone-300 hover:text-brand-600 transition-colors leading-none" title="Editar">✏️</button>
-          <button onClick={e => { e.stopPropagation(); onDelete(task) }} className="text-stone-300 hover:text-red-500 transition-colors leading-none"  title="Eliminar">🗑️</button>
-        </div>
+    <div className={`flex-1 min-w-0 ${indent ? 'pl-1' : ''}`}>
+      <div className="text-[11px] font-semibold leading-snug line-clamp-2 mb-2.5" style={{ color: '#1e293b' }}>
+        {task.tarea}
+        {isCompleted && (
+          <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" title="Listo para archivar" />
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-1">
+        <CountryBadge pais={task.pais} />
+        <DelayBadge dias={task.dias_retraso} />
       </div>
     </div>
+  )
+}
+
+// ─── Task detail modal ────────────────────────────────────────────────────────
+
+function TaskDetailModal({ task, isFinalizados, onClose, onFieldChange, onComplete, onDelete, onEdit, onReopen }) {
+  const { color: accent } = ACCENT_MAP[task.prioridad] || { color: '#64748b' }
+  const isCompleted = isFullyCompleted(task)
+  const hasLinks = task.mail || task.mail2 || task.documento
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.15 }}
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 16, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+        style={{
+          width: '100%', maxWidth: 400,
+          background: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(24px)',
+          borderRadius: 20,
+          border: '1px solid rgba(255,255,255,0.9)',
+          boxShadow: '0 24px 60px rgba(0,0,0,0.18)',
+          overflow: 'hidden',
+          borderTop: `3px solid ${accent}`,
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ padding: '18px 20px 14px' }}>
+          <div className="flex items-start justify-between gap-3">
+            <p className="text-sm font-bold leading-snug" style={{ color: '#0f172a', flex: 1 }}>{task.tarea}</p>
+            <button onClick={onClose} style={{ color: '#94a3b8', fontSize: 18, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0, marginTop: -2 }}>×</button>
+          </div>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <CountryBadge pais={task.pais} />
+            <DelayBadge dias={task.dias_retraso} />
+            {task.fecha_mail && (
+              <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8' }}>{task.fecha_mail}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Status fields */}
+        <div style={{ borderTop: '1px solid rgba(0,0,0,0.06)', borderBottom: '1px solid rgba(0,0,0,0.06)', padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { label: 'Prioridad',    field: 'prioridad',             opts: FIELD_OPTIONS.prioridad },
+            { label: 'Lib. Intranet', field: 'libreria_intranet',    opts: FIELD_OPTIONS.libreria_intranet },
+            { label: 'Documentación', field: 'documentacion_inicial', opts: FIELD_OPTIONS.documentacion_inicial },
+            { label: 'Finalizado',   field: 'finalizado',            opts: FIELD_OPTIONS.finalizado },
+          ].map(({ label, field, opts }) => (
+            <div key={field} className="flex items-center justify-between gap-3">
+              <span style={{ fontSize: 11, color: '#64748b', fontWeight: 500, minWidth: 90 }}>{label}</span>
+              {isFinalizados
+                ? <span style={{ fontSize: 11, color: '#334155', fontWeight: 600 }}>{task[field]}</span>
+                : <InlineDropdown value={task[field]} options={opts} onSave={v => onFieldChange(task, field, v)} />
+              }
+            </div>
+          ))}
+        </div>
+
+        {/* Links */}
+        {hasLinks && (
+          <div style={{ padding: '10px 20px', display: 'flex', gap: 12, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
+            <LinkCell url={task.mail}      title="Mail"          icon="✉️" />
+            <LinkCell url={task.mail2}     title="Carpeta Drive" icon="📁" />
+            <LinkCell url={task.documento} title="Documento"     icon="📄" />
+          </div>
+        )}
+
+        {/* Actions */}
+        <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <button
+            onClick={() => { onDelete(task); onClose() }}
+            style={{ fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}
+          >
+            Eliminar
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {isFinalizados && (
+              <button
+                onClick={() => { onReopen(task); onClose() }}
+                style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: '1px solid rgba(74,103,65,0.3)', background: 'transparent', color: '#4a6741', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Reabrir →
+              </button>
+            )}
+            {!isFinalizados && isCompleted && (
+              <button
+                onClick={() => { onComplete(task); onClose() }}
+                style={{ fontSize: 11, padding: '5px 12px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+              >
+                Archivar →
+              </button>
+            )}
+            <button
+              onClick={() => { onEdit(task); onClose() }}
+              style={{ fontSize: 11, padding: '5px 14px', borderRadius: 8, border: 'none', background: 'linear-gradient(135deg, #4a6741, #3d5636)', color: '#fff', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Editar
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
 // ─── Board column ─────────────────────────────────────────────────────────────
 
-function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, collapsedGroups, onToggleCollapse, onEdit, onDelete, onComplete }) {
+function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, collapsedGroups, onToggleCollapse, onOpenDetail }) {
   const { setNodeRef, isOver } = useDroppable({ id: `priority:${prioridad}` })
   const { groups, ungrouped } = groupTasks(tasks)
-
-  const accentColor = {
-    'Urgente': '#dc2626', 'Alta': '#d97706', 'Firmando': '#7c3aed',
-    'Baja': '#059669', 'Solo documentación': '#64748b',
-  }[prioridad] || '#64748b'
-  const accentDim = {
-    'Urgente': 'rgba(220,38,38,0.07)', 'Alta': 'rgba(217,119,6,0.07)', 'Firmando': 'rgba(124,58,237,0.07)',
-    'Baja': 'rgba(5,150,105,0.07)', 'Solo documentación': 'rgba(100,116,139,0.06)',
-  }[prioridad] || 'rgba(100,116,139,0.06)'
-
-  if (isCollapsed) {
-    return (
-      <div
-        style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0,
-          width: 44, borderRadius: 16, cursor: 'pointer',
-          background: 'rgba(255,255,255,0.62)',
-          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          border: '1px solid rgba(255,255,255,0.88)',
-          boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
-          borderTop: `2px solid ${accentColor}88`,
-          transition: 'all 0.15s',
-        }}
-        onClick={onToggleColumn}
-        title={`Expandir ${prioridad}`}
-      >
-        <div style={{
-          width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '8px 0', borderBottom: '1px solid rgba(0,0,0,0.06)',
-        }}>
-          <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: accentColor }}>{tasks.length}</span>
-        </div>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0' }}>
-          <span style={{
-            fontSize: 11, fontWeight: 600, color: accentColor, userSelect: 'none',
-            writingMode: 'vertical-rl', textOrientation: 'mixed', transform: 'rotate(180deg)',
-          }}>
-            {prioridad}
-          </span>
-        </div>
-      </div>
-    )
-  }
+  const { color: accent, dim: accentDim } = ACCENT_MAP[prioridad] || { color: '#64748b', dim: 'rgba(100,116,139,0.06)' }
 
   return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', flex: 1, minWidth: 200,
-      borderRadius: 16,
-      background: 'rgba(255,255,255,0.62)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(255,255,255,0.88)',
-      boxShadow: '0 1px 8px rgba(0,0,0,0.05)',
-      borderTop: `2px solid ${accentColor}88`,
-    }}>
-      {/* Column header */}
+    <motion.div
+      layout
+      initial={false}
+      animate={{ width: isCollapsed ? 48 : 256 }}
+      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+      style={{
+        flexShrink: 0, borderRadius: 16, overflow: 'hidden',
+        background: 'rgba(255,255,255,0.68)',
+        backdropFilter: 'blur(18px)',
+        WebkitBackdropFilter: 'blur(18px)',
+        border: '1px solid rgba(255,255,255,0.92)',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
+        borderTop: `2.5px solid ${accent}`,
+        display: 'flex', flexDirection: 'column',
+        alignSelf: 'flex-start',
+      }}
+    >
+      {/* Header — siempre visible */}
       <button
         onClick={onToggleColumn}
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '9px 13px', borderBottom: '1px solid rgba(0,0,0,0.06)',
-          width: '100%', textAlign: 'left', cursor: 'pointer',
-          background: 'transparent', borderRadius: '14px 14px 0 0',
-          transition: 'background 0.15s',
+          width: '100%', border: 'none', background: 'none', cursor: 'pointer',
+          borderBottom: isCollapsed ? 'none' : '1px solid rgba(0,0,0,0.06)',
+          padding: isCollapsed ? '10px 0' : '10px 14px',
+          display: 'flex', alignItems: 'center',
+          justifyContent: isCollapsed ? 'center' : 'space-between',
         }}
-        title="Colapsar columna"
+        title={isCollapsed ? `Expandir ${prioridad}` : 'Colapsar'}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <div style={{
-            width: 7, height: 7, borderRadius: '50%', background: accentColor,
-            boxShadow: `0 0 6px ${accentColor}88`,
-          }} />
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#334155', letterSpacing: 0.1 }}>{prioridad}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{
-            fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
-            color: accentColor, background: accentDim,
-            padding: '2px 8px', borderRadius: 20,
-          }}>{tasks.length}</span>
-          <span style={{ fontSize: 9, color: '#cbd5e1' }}>▲</span>
-        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          {isCollapsed ? (
+            <motion.span key="c"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+              style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: accent }}
+            >{tasks.length}</motion.span>
+          ) : (
+            <motion.div key="e"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: accent, boxShadow: `0 0 7px ${accent}99`, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', letterSpacing: 0.1 }}>{prioridad}</span>
+              </div>
+              <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: accent, background: accentDim, padding: '2px 8px', borderRadius: 20 }}>
+                {tasks.length}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </button>
 
-      {/* Droppable area */}
-      <div
-        ref={setNodeRef}
-        className="flex-1 p-2 space-y-2 overflow-y-auto transition-colors"
-        style={{
-          maxHeight: 'calc(100vh - 300px)', minHeight: '80px',
-          background: isOver ? 'rgba(74,103,65,0.04)' : 'transparent',
-        }}
-      >
-        <AnimatePresence initial={false}>
-          {ungrouped.map(task => (
-            <DraggableTaskRow key={task.rowIndex} task={task}>
-              <BoardTaskCard task={task} onEdit={onEdit} onDelete={onDelete} onComplete={onComplete} />
-            </DraggableTaskRow>
-          ))}
-          {Object.keys(groups).length > 0 && <UngroupedDropZone />}
-          {Object.entries(groups).map(([nombre, tareas]) => {
-            const collapsed = collapsedGroups[nombre]
-            return (
-              <Fragment key={nombre}>
-                <GroupHeaderRow
-                  nombre={nombre}
-                  tareas={tareas}
-                  collapsed={collapsed}
-                  onToggle={() => onToggleCollapse(nombre)}
-                />
-                <AnimatePresence initial={false}>
-                  {!collapsed && tareas.map(task => (
-                    <DraggableTaskRow key={task.rowIndex} task={task}>
-                      <BoardTaskCard task={task} onEdit={onEdit} onDelete={onDelete} onComplete={onComplete} indent />
-                    </DraggableTaskRow>
-                  ))}
-                </AnimatePresence>
-              </Fragment>
-            )
-          })}
-        </AnimatePresence>
-        {tasks.length === 0 && (
-          <div style={{
-            textAlign: 'center', padding: '28px 12px', color: '#cbd5e1', fontSize: 12,
-            border: '1px dashed rgba(0,0,0,0.08)', borderRadius: 10, margin: '4px',
-          }}>Sin tareas</div>
+      {/* Etiqueta vertical cuando está colapsada */}
+      <AnimatePresence initial={false}>
+        {isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 0', cursor: 'pointer' }}
+            onClick={onToggleColumn}
+          >
+            <span style={{ fontSize: 11, fontWeight: 700, color: accent, userSelect: 'none', writingMode: 'vertical-rl', transform: 'rotate(180deg)', letterSpacing: 0.5 }}>
+              {prioridad}
+            </span>
+          </motion.div>
         )}
-      </div>
-    </div>
+      </AnimatePresence>
+
+      {/* Contenido expandido */}
+      <AnimatePresence initial={false}>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          >
+            <div
+              ref={setNodeRef}
+              style={{
+                flex: 1, padding: '8px', overflowY: 'auto',
+                display: 'flex', flexDirection: 'column', gap: 6,
+                maxHeight: 'calc(100vh - 290px)', minHeight: 80,
+                background: isOver ? 'rgba(74,103,65,0.05)' : 'transparent',
+                transition: 'background 0.15s',
+              }}
+            >
+              <AnimatePresence initial={false}>
+                {ungrouped.map(task => (
+                  <DraggableTaskRow key={task.rowIndex} task={task} onOpenDetail={onOpenDetail} />
+                ))}
+                {Object.keys(groups).length > 0 && <UngroupedDropZone />}
+                {Object.entries(groups).map(([nombre, tareas]) => {
+                  const collapsed = collapsedGroups[nombre]
+                  return (
+                    <Fragment key={nombre}>
+                      <GroupHeaderRow nombre={nombre} tareas={tareas} collapsed={collapsed} onToggle={() => onToggleCollapse(nombre)} />
+                      <AnimatePresence initial={false}>
+                        {!collapsed && tareas.map(task => (
+                          <DraggableTaskRow key={task.rowIndex} task={task} onOpenDetail={onOpenDetail} indent />
+                        ))}
+                      </AnimatePresence>
+                    </Fragment>
+                  )
+                })}
+              </AnimatePresence>
+              {tasks.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '28px 8px', color: '#64748b', fontSize: 11, border: '1px dashed rgba(0,0,0,0.12)', borderRadius: 10 }}>
+                  Sin tareas
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   )
 }
 
 // ─── Board container ──────────────────────────────────────────────────────────
 
-function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onEdit, onDelete, onComplete, collapsedColumns, onToggleColumn }) {
-
+function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onOpenDetail, collapsedColumns, onToggleColumn }) {
   return (
-    <div className="overflow-x-auto">
-    <div className="flex gap-3 pb-4 pt-1 px-4 min-w-0 w-full">
-      {BOARD_PRIORITIES.map(prioridad => (
-        <BoardColumn
-          key={prioridad}
-          prioridad={prioridad}
-          tasks={pendientes.filter(t => t.prioridad === prioridad)}
-          isCollapsed={!!collapsedColumns[prioridad]}
-          onToggleColumn={() => onToggleColumn(prioridad)}
-          collapsedGroups={collapsedGroups}
-          onToggleCollapse={onToggleCollapse}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onComplete={onComplete}
-        />
-      ))}
-    </div>
+    <div style={{ overflowX: 'auto', overflowY: 'hidden' }}>
+      <div style={{ display: 'flex', gap: 10, padding: '4px 0 24px', alignItems: 'flex-start', width: 'max-content' }}>
+        {BOARD_PRIORITIES.map(prioridad => (
+          <BoardColumn
+            key={prioridad}
+            prioridad={prioridad}
+            tasks={pendientes.filter(t => t.prioridad === prioridad)}
+            isCollapsed={!!collapsedColumns[prioridad]}
+            onToggleColumn={() => onToggleColumn(prioridad)}
+            collapsedGroups={collapsedGroups}
+            onToggleCollapse={onToggleCollapse}
+            onOpenDetail={onOpenDetail}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -606,14 +705,17 @@ function TareasTable({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.18, ease: 'easeOut', delay: idx * 0.03 }}
-          className={`${rowHighlightClasses(task.prioridad)} rounded-xl flex items-start gap-2.5 px-4 py-3 transition-shadow transition-transform duration-150 ${isFinalizados ? 'opacity-75' : ''}`}
+          className={`${rowHighlightClasses(task.prioridad)} rounded-xl flex items-start gap-2.5 px-4 py-3 cursor-pointer ${isFinalizados ? 'opacity-80' : ''}`}
           style={{
-            background: 'rgba(255,255,255,0.75)',
+            background: 'rgba(255,255,255,0.78)',
             backdropFilter: 'blur(14px)',
             WebkitBackdropFilter: 'blur(14px)',
-            border: '1px solid rgba(255,255,255,0.88)',
+            border: '1px solid rgba(255,255,255,0.9)',
             boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+            transition: 'transform 0.15s, box-shadow 0.15s',
           }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.09)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 1px 4px rgba(0,0,0,0.05)' }}
         >
           <div className="w-3 shrink-0" />
           <TaskCard
@@ -879,9 +981,10 @@ export default function Tareas() {
   const [automationResult, setAutomationResult] = useState(null)
   const [activeId, setActiveId]         = useState(null)
   const [clockTime, setClockTime]       = useState(new Date())
+  const [detailInfo, setDetailInfo]     = useState(null) // { rowIndex, source: 'pendientes'|'finalizados' }
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
   )
 
   const [collapsedGroups, setCollapsedGroups] = useState(() => {
@@ -1188,6 +1291,11 @@ export default function Tareas() {
     ? lastSync.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
     : null
 
+  // Tarea actualmente en el modal de detalle (reactivo: se actualiza cuando cambia el estado)
+  const detailTask = detailInfo
+    ? (detailInfo.source === 'finalizados' ? finalizados : pendientes).find(t => t.rowIndex === detailInfo.rowIndex)
+    : null
+
   return (
     <div className="p-4">
 
@@ -1201,7 +1309,7 @@ export default function Tareas() {
               {clockTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </div>
           </div>
-          <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#cbd5e1', marginTop: 2, letterSpacing: 1 }}>
+          <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8', marginTop: 2, letterSpacing: 1 }}>
             NODO SUR · GESTIÓN OPERATIVA{lastSyncText && ` · sync ${lastSyncText}`}
           </p>
           <style>{`@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
@@ -1259,28 +1367,32 @@ export default function Tareas() {
       {!loading && (
         <div className="grid grid-cols-4 gap-3 mb-5 max-w-5xl mx-auto">
           {[
-            { label: 'Total activas',  value: pendientes.length,                                               sub: 'tareas pendientes',        accent: '#c9a84c' },
-            { label: 'Urgentes',       value: pendientes.filter(t => t.prioridad === 'Urgente').length,        sub: 'atención inmediata',       accent: '#dc2626' },
-            { label: 'En retraso',     value: pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length,       sub: 'fuera de fecha límite',    accent: '#d97706' },
-            { label: 'Finalizadas',    value: finalizados.length,                                              sub: 'tareas archivadas',        accent: '#7c3aed' },
-          ].map(({ label, value, sub, accent }) => (
-            <div key={label} style={{
+            { label: 'Total activas', value: pendientes.length,                                         sub: 'tareas pendientes',     accent: '#c9a84c', onClick: () => { setTab('pendientes'); setPaisFilter('Todos') } },
+            { label: 'Urgentes',      value: pendientes.filter(t => t.prioridad === 'Urgente').length,  sub: 'atención inmediata',    accent: '#dc2626', onClick: () => { setTab('pendientes'); setSortBy('prioridad') } },
+            { label: 'En retraso',    value: pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length, sub: 'fuera de fecha límite', accent: '#d97706', onClick: () => { setTab('pendientes'); setSortBy('fecha') } },
+            { label: 'Finalizadas',   value: finalizados.length,                                        sub: 'tareas archivadas',     accent: '#7c3aed', onClick: () => setTab('hecho') },
+          ].map(({ label, value, sub, accent, onClick }) => (
+            <div key={label} onClick={onClick} style={{
               background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(18px)',
               WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.9)',
               borderRadius: 16, padding: '18px 20px', position: 'relative', overflow: 'hidden',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            }}>
+              cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)' }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)' }}
+            >
               <div style={{
                 position: 'absolute', top: -24, right: -24, width: 90, height: 90,
                 borderRadius: '50%', background: accent, opacity: 0.1, filter: 'blur(24px)', pointerEvents: 'none',
               }} />
-              <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#64748b', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
                 {label}
               </div>
               <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1, color: accent, letterSpacing: -2 }}>
                 {value}
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 6 }}>{sub}</div>
+              <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -1332,7 +1444,7 @@ export default function Tareas() {
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3 mb-4 max-w-5xl mx-auto">
-        <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#cbd5e1' }}>ORDENAR</span>
+        <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8', letterSpacing: 1 }}>ORDENAR</span>
         {[
           { key: 'prioridad', label: 'Prioridad' },
           { key: 'fecha',     label: 'Fecha' },
@@ -1394,9 +1506,7 @@ export default function Tareas() {
             pendientes={boardPendientes}
             collapsedGroups={collapsedGroups}
             onToggleCollapse={toggleCollapse}
-            onEdit={setEditTask}
-            onDelete={task => setDeleteTask({ ...task, _source: 'pendientes' })}
-            onComplete={task => setCompleteTask(task)}
+            onOpenDetail={task => setDetailInfo({ rowIndex: task.rowIndex, source: 'pendientes' })}
             collapsedColumns={collapsedColumns}
             onToggleColumn={toggleColumn}
           />
@@ -1541,6 +1651,22 @@ export default function Tareas() {
           </div>
         </div>
       )}
+
+      {/* Modal: detalle de tarea */}
+      <AnimatePresence>
+        {detailTask && (
+          <TaskDetailModal
+            task={detailTask}
+            isFinalizados={detailInfo?.source === 'finalizados'}
+            onClose={() => setDetailInfo(null)}
+            onFieldChange={handleFieldChange}
+            onComplete={task => { setArchiveTask(task); setDetailInfo(null) }}
+            onDelete={task => { setDeleteTask({ ...task, _source: detailInfo?.source === 'finalizados' ? 'finalizados' : 'pendientes' }); setDetailInfo(null) }}
+            onEdit={task => { setEditTask(task); setDetailInfo(null) }}
+            onReopen={task => { setReopenTask(task); setDetailInfo(null) }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Modal: nueva tarea */}
       {showNewTask && (

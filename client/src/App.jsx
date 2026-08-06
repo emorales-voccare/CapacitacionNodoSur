@@ -6,43 +6,6 @@ import Documentacion from './pages/Documentacion'
 
 const PAGES = { dashboard: Dashboard, coordinadores: Coordinadores, tareas: Tareas, documentacion: Documentacion }
 
-function MeshBackground() {
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-      <div style={{
-        position: 'absolute', top: '-10%', left: '-8%',
-        width: 640, height: 640, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(74,103,65,0.14) 0%, transparent 68%)',
-        filter: 'blur(70px)',
-        animation: 'drift1 22s ease-in-out infinite',
-      }} />
-      <div style={{
-        position: 'absolute', top: '30%', right: '-12%',
-        width: 520, height: 520, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(201,168,76,0.12) 0%, transparent 68%)',
-        filter: 'blur(80px)',
-        animation: 'drift2 26s ease-in-out infinite',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '-12%', left: '35%',
-        width: 480, height: 480, borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(74,103,65,0.1) 0%, transparent 68%)',
-        filter: 'blur(80px)',
-        animation: 'drift3 18s ease-in-out infinite',
-      }} />
-      <div style={{
-        position: 'absolute', inset: 0,
-        backgroundImage: 'radial-gradient(circle, rgba(100,116,139,0.1) 1px, transparent 1px)',
-        backgroundSize: '28px 28px',
-      }} />
-      <style>{`
-        @keyframes drift1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(40px,-30px) scale(1.05)} }
-        @keyframes drift2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-30px,22px) scale(0.96)} }
-        @keyframes drift3 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(18px,36px) scale(1.04)} }
-      `}</style>
-    </div>
-  )
-}
 
 export default function App() {
   const [page, setPage] = useState('tareas')
@@ -89,8 +52,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#f0f2f8]" style={{ position: 'relative' }}>
-      <MeshBackground />
+    <div className="flex h-screen overflow-hidden bg-[#faf8f4]" style={{ position: 'relative' }}>
 
       {/* Backdrop */}
       {sidebarOpen && (
@@ -106,7 +68,7 @@ export default function App() {
         className={`fixed top-0 left-0 h-full z-30 flex flex-col shadow-2xl transition-transform duration-250 ease-in-out ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ width: '16rem', background: 'linear-gradient(180deg, #1c2711 0%, #1a2610 100%)' }}
+        style={{ width: '16rem', background: '#1a1410', borderRight: '2px solid #1a1410' }}
       >
         {/* Brand header */}
         <div className="px-5 pt-5 pb-4 shrink-0">
@@ -210,13 +172,10 @@ export default function App() {
       {/* Content — siempre full width */}
       <main className="flex-1 overflow-auto" style={{ position: 'relative', zIndex: 1 }}>
         {/* Top bar con botón hamburguesa */}
-        <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3 border-b"
+        <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3"
           style={{
-            background: 'rgba(255,255,255,0.72)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderColor: 'rgba(0,0,0,0.07)',
-            boxShadow: '0 1px 12px rgba(0,0,0,0.05)',
+            background: '#faf8f4',
+            borderBottom: '2px solid #1a1410',
           }}>
           <button
             onClick={() => setSidebarOpen(true)}

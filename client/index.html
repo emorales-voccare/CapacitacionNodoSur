@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Fraunces:opsz,wght@9..144,300;9..144,400&family=DM+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -27,15 +27,21 @@
               }
             },
             fontFamily: {
-              sans: ['Outfit', 'Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-              mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+              sans: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              mono: ['DM Mono', 'ui-monospace', 'monospace'],
+              serif: ['Fraunces', 'Georgia', 'serif'],
             },
           }
         }
       }
     </script>
+    <style>
+      ::-webkit-scrollbar { width: 3px; height: 3px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.18); }
+    </style>
   </head>
-  <body class="bg-[#f0f2f8]">
+  <body class="bg-[#faf8f4]">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

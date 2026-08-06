@@ -16,11 +16,11 @@ const FIELD_OPTIONS = {
 const PRIORITY_ORDER = { 'Urgente': 0, 'Alta': 1, 'Firmando': 1.5, 'Baja': 2, 'Solo documentación': 2.5, 'Hecho': 3, '': 4 }
 
 const ACCENT_MAP = {
-  'Urgente':            { color: '#dc2626', dim: 'rgba(220,38,38,0.08)' },
-  'Alta':               { color: '#d97706', dim: 'rgba(217,119,6,0.08)' },
-  'Firmando':           { color: '#7c3aed', dim: 'rgba(124,58,237,0.07)' },
-  'Baja':               { color: '#059669', dim: 'rgba(5,150,105,0.07)' },
-  'Solo documentación': { color: '#64748b', dim: 'rgba(100,116,139,0.06)' },
+  'Urgente':            { color: '#c0392b', dim: 'rgba(192,57,43,0.1)' },
+  'Alta':               { color: '#b45309', dim: 'rgba(180,83,9,0.1)' },
+  'Firmando':           { color: '#5b3fa6', dim: 'rgba(91,63,166,0.1)' },
+  'Baja':               { color: '#2d6a4f', dim: 'rgba(45,106,79,0.1)' },
+  'Solo documentación': { color: '#5c5248', dim: 'rgba(92,82,72,0.08)' },
 }
 
 function isFullyCompleted(task) {
@@ -57,9 +57,9 @@ function groupTasks(tasks) {
 }
 
 function DelayBadge({ dias }) {
-  if (dias === null || dias === undefined) return <span className="text-gray-300 text-xs">—</span>
+  if (dias === null || dias === undefined) return <span style={{ color: '#c9c0b4', fontSize: 11 }}>—</span>
   if (dias <= 0) return (
-    <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: '#059669', background: 'rgba(5,150,105,0.09)', padding: '2px 7px', borderRadius: 20 }}>
+    <span style={{ fontSize: 9.5, fontFamily: "'DM Mono', monospace", fontWeight: 500, color: '#2d6a4f', background: '#f0f7f4', padding: '2px 6px' }}>
       En fecha
     </span>
   )
@@ -67,10 +67,10 @@ function DelayBadge({ dias }) {
   const isNear = dias <= 5
   return (
     <span style={{
-      fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
-      color: isLate ? '#dc2626' : isNear ? '#d97706' : '#64748b',
-      background: isLate ? 'rgba(220,38,38,0.09)' : isNear ? 'rgba(217,119,6,0.09)' : 'rgba(0,0,0,0.05)',
-      padding: '2px 7px', borderRadius: 20,
+      fontSize: 9.5, fontFamily: "'DM Mono', monospace", fontWeight: 500,
+      color: isLate ? '#b91c1c' : isNear ? '#92400e' : '#7a6e65',
+      background: isLate ? '#fef2f2' : isNear ? '#fef3c7' : '#f5f3ef',
+      padding: '2px 6px',
     }}>
       {dias}d
     </span>
@@ -166,14 +166,14 @@ const COUNTRY_PALETTE = {
 }
 
 function CountryBadge({ pais }) {
-  if (!pais || pais === '—') return <span className="text-gray-300">—</span>
+  if (!pais || pais === '—') return <span style={{ color: '#c9c0b4' }}>—</span>
   const key = pais.toLowerCase()
-  const { color } = COUNTRY_PALETTE[key] || { color: '#64748b' }
+  const { color } = COUNTRY_PALETTE[key] || { color: '#5c5248' }
   return (
     <span style={{
-      fontSize: 9, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600,
-      color, background: color + '14', border: `1px solid ${color}22`,
-      padding: '2px 7px', borderRadius: 20, letterSpacing: 0.5,
+      fontSize: 9, fontFamily: "'DM Mono', monospace", fontWeight: 500,
+      color, background: color + '12', border: `1px solid ${color}20`,
+      padding: '2px 6px', letterSpacing: 0.4,
       textTransform: 'uppercase',
     }}>
       {pais}
@@ -266,20 +266,18 @@ function DraggableTaskRow({ task, onOpenDetail, indent }) {
       {...attributes}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`${rowHighlightClasses(task.prioridad)} rounded-lg flex overflow-hidden
-        ${isOver && !isDragging ? 'ring-2 ring-brand-400/60' : ''}`}
+      className={`flex overflow-hidden ${isOver && !isDragging ? 'ring-2 ring-brand-600/40' : ''}`}
       style={{
-        background: isDragging ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.82)',
-        backdropFilter: 'blur(14px)',
-        WebkitBackdropFilter: 'blur(14px)',
-        border: '1px solid rgba(255,255,255,0.9)',
+        background: isDragging ? 'rgba(255,255,255,0.7)' : '#fff',
+        border: `1.5px solid ${hovered && !isDragging ? '#c9c0b4' : '#ece8e1'}`,
+        borderLeft: `3px solid ${ACCENT_MAP[task.prioridad]?.color || '#ece8e1'}`,
         boxShadow: isDragging
-          ? '0 12px 32px rgba(0,0,0,0.2)'
+          ? '0 12px 32px rgba(0,0,0,0.16)'
           : hovered
-            ? '0 4px 18px rgba(0,0,0,0.1)'
-            : '0 1px 4px rgba(0,0,0,0.06)',
+            ? '0 4px 14px rgba(0,0,0,0.07)'
+            : 'none',
         transform: !isDragging && hovered ? 'translateY(-1px)' : 'translateY(0)',
-        transition: 'box-shadow 0.18s ease, transform 0.15s ease',
+        transition: 'border-color 0.14s, box-shadow 0.14s, transform 0.12s',
       }}
     >
       {/* Drag handle separado — evita conflicto con onClick del contenido */}
@@ -323,13 +321,13 @@ function BoardTaskCard({ task, indent }) {
   const isCompleted = isFullyCompleted(task)
   return (
     <div className={`flex-1 min-w-0 ${indent ? 'pl-1' : ''}`}>
-      <div className="text-[11px] font-semibold leading-snug line-clamp-2 mb-2.5" style={{ color: '#1e293b' }}>
+      <p style={{ margin: 0, fontSize: 11.5, fontWeight: 500, lineHeight: 1.4, color: '#1a1410', fontFamily: "'Sora', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 6 }}>
         {task.tarea}
         {isCompleted && (
-          <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-green-500 align-middle" title="Listo para archivar" />
+          <span style={{ marginLeft: 6, display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#2d6a4f', verticalAlign: 'middle' }} title="Listo para archivar" />
         )}
-      </div>
-      <div className="flex items-center justify-between gap-1">
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
         <CountryBadge pais={task.pais} />
         <DelayBadge dias={task.dias_retraso} />
       </div>
@@ -469,28 +467,23 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
         minWidth: isCollapsed ? 48 : 200,
         maxWidth: isCollapsed ? 48 : 520,
         width: isCollapsed ? 48 : undefined,
-        borderRadius: 16, overflow: 'hidden',
-        background: 'rgba(255,255,255,0.68)',
-        backdropFilter: 'blur(18px)',
-        WebkitBackdropFilter: 'blur(18px)',
-        border: '1px solid rgba(255,255,255,0.92)',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-        borderTop: `2.5px solid ${accent}`,
+        overflow: 'hidden',
+        background: '#faf8f4',
+        border: '1.5px solid #ece8e1',
         display: 'flex', flexDirection: 'column',
         alignSelf: 'flex-start',
         transformOrigin: 'top center',
         transition: 'flex 0.3s ease, min-width 0.3s ease, width 0.3s ease',
       }}
     >
-      {/* Header — siempre visible */}
-      <button
+      {/* Header — banda de color sólido */}
+      <div
         onClick={onToggleColumn}
         style={{
-          width: '100%', border: 'none', background: 'none', cursor: 'pointer',
-          borderBottom: isCollapsed ? 'none' : '1px solid rgba(0,0,0,0.06)',
-          padding: isCollapsed ? '10px 0' : '10px 14px',
+          background: accent, padding: isCollapsed ? '10px 0' : '10px 12px',
           display: 'flex', alignItems: 'center',
           justifyContent: isCollapsed ? 'center' : 'space-between',
+          cursor: 'pointer', flexShrink: 0,
         }}
         title={isCollapsed ? `Expandir ${prioridad}` : 'Colapsar'}
       >
@@ -499,7 +492,7 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
             <motion.span key="c"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 700, color: accent }}
+              style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}
             >{tasks.length}</motion.span>
           ) : (
             <motion.div key="e"
@@ -507,20 +500,19 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
               transition={{ duration: 0.12 }}
               style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                <div style={{ width: 7, height: 7, borderRadius: '50%', background: accent, boxShadow: `0 0 7px ${accent}99`, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b', letterSpacing: 0.1 }}>{prioridad}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600, color: accent, background: accentDim, padding: '2px 8px', borderRadius: 20 }}>
+              <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 0.3, textTransform: 'uppercase' }}>
+                {prioridad}
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, background: 'rgba(255,255,255,0.22)', color: '#fff', padding: '1px 7px' }}>
                   {tasks.length}
                 </span>
                 <button
                   onClick={e => { e.stopPropagation(); onToggleHidden() }}
                   title="Ocultar columna"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 4, color: '#cbd5e1', display: 'flex', alignItems: 'center', lineHeight: 1, flexShrink: 0 }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#94a3b8'}
-                  onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', lineHeight: 1, flexShrink: 0 }}
+                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.9)'}
+                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
@@ -531,7 +523,7 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
             </motion.div>
           )}
         </AnimatePresence>
-      </button>
+      </div>
 
       {/* Etiqueta vertical cuando está colapsada */}
       <AnimatePresence initial={false}>
@@ -539,10 +531,10 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 0', cursor: 'pointer' }}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px 0', cursor: 'pointer', background: '#faf8f4' }}
             onClick={onToggleColumn}
           >
-            <span style={{ fontSize: 11, fontWeight: 700, color: accent, userSelect: 'none', writingMode: 'vertical-rl', transform: 'rotate(180deg)', letterSpacing: 0.5 }}>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 10, fontWeight: 700, color: accent, userSelect: 'none', writingMode: 'vertical-rl', transform: 'rotate(180deg)', letterSpacing: 0.5, textTransform: 'uppercase' }}>
               {prioridad}
             </span>
           </motion.div>
@@ -562,10 +554,10 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
             <div
               ref={setNodeRef}
               style={{
-                flex: 1, padding: '8px', overflowY: 'auto',
-                display: 'flex', flexDirection: 'column', gap: 6,
+                flex: 1, padding: '6px', overflowY: 'auto',
+                display: 'flex', flexDirection: 'column', gap: 0,
                 maxHeight: 'calc(100vh - 290px)', minHeight: 80,
-                background: isOver ? 'rgba(74,103,65,0.05)' : 'transparent',
+                background: isOver ? 'rgba(45,106,79,0.04)' : 'transparent',
                 transition: 'background 0.15s',
               }}
             >
@@ -589,7 +581,7 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
                 })}
               </AnimatePresence>
               {tasks.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '28px 8px', color: '#64748b', fontSize: 11, border: '1px dashed rgba(0,0,0,0.12)', borderRadius: 10 }}>
+                <div style={{ padding: '28px 12px', textAlign: 'center', color: '#7a6e65', fontSize: 11, fontFamily: "'Sora', sans-serif", borderTop: '1px dashed #ddd8d0' }}>
                   Sin tareas
                 </div>
               )}
@@ -1335,37 +1327,36 @@ export default function Tareas() {
     <div className="p-4">
 
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between gap-4 max-w-5xl mx-auto">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0 12px', borderBottom: '1.5px solid #ece8e1', marginBottom: 0 }}>
         <div>
-          <div className="flex items-baseline gap-3">
-            <h2 className="text-xl font-bold" style={{ color: '#1c2711' }}>Tareas pendientes</h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: '#94a3b8' }}>
-              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#22c55e', animation: 'pulse-dot 2s ease-in-out infinite' }} />
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <h2 style={{ margin: 0, fontFamily: "'Sora', sans-serif", fontSize: 18, fontWeight: 700, color: '#1a1410', letterSpacing: -0.3 }}>Tareas pendientes</h2>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#7a6e65' }}>
+              <span className="pulse-dot" style={{ width: 5, height: 5, borderRadius: '50%', background: '#2d6a4f', display: 'inline-block' }} />
               {clockTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </div>
+            </span>
           </div>
-          <p style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8', marginTop: 2, letterSpacing: 1 }}>
-            NODO SUR · GESTIÓN OPERATIVA{lastSyncText && ` · sync ${lastSyncText}`}
+          <p style={{ margin: '3px 0 0', fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#7a6e65', letterSpacing: 1, textTransform: 'uppercase' }}>
+            Nodo Sur · Gestión operativa{lastSyncText && ` · sync ${lastSyncText}`}
           </p>
-          <style>{`@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
+          <style>{`@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.2} } .pulse-dot{animation:pulse-dot 2s ease-in-out infinite}`}</style>
         </div>
-        <div className="flex gap-2">
+        <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={handleRunAutomation}
             disabled={automationLoading}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 8,
-              border: '1px solid rgba(0,0,0,0.08)',
-              background: 'rgba(255,255,255,0.72)',
-              color: '#64748b', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              padding: '6px 14px', border: '1.5px solid #c9c0b4',
+              background: 'transparent', color: '#4a3f35', fontSize: 11,
+              fontFamily: "'Sora', sans-serif", cursor: 'pointer',
               opacity: automationLoading ? 0.6 : 1,
             }}
           >
             {automationLoading ? (
               <><span className="animate-spin inline-block text-xs">🧠</span>IA Analizando...</>
             ) : (
-              <><span>🚀</span>Automatizar</>
+              <>🚀 Automatizar</>
             )}
           </button>
           <button
@@ -1373,10 +1364,9 @@ export default function Tareas() {
             disabled={loading}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 8,
-              border: '1px solid rgba(0,0,0,0.08)',
-              background: 'rgba(255,255,255,0.72)',
-              color: '#64748b', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+              padding: '6px 14px', border: '1.5px solid #c9c0b4',
+              background: 'transparent', color: '#4a3f35', fontSize: 11,
+              fontFamily: "'Sora', sans-serif", cursor: 'pointer',
               opacity: loading ? 0.5 : 1,
             }}
           >
@@ -1386,11 +1376,10 @@ export default function Tareas() {
           <button
             onClick={() => setShowNewTask(true)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg, #4a6741, #3d5636)',
-              color: '#fff', fontSize: 12, fontWeight: 700,
-              boxShadow: '0 4px 14px rgba(74,103,65,0.3)',
+              padding: '7px 16px', border: 'none', cursor: 'pointer',
+              background: '#c0392b', color: '#fff',
+              fontSize: 11, fontWeight: 700, fontFamily: "'Sora', sans-serif",
+              letterSpacing: 0.3,
             }}
           >
             + Nueva tarea
@@ -1398,37 +1387,38 @@ export default function Tareas() {
         </div>
       </div>
 
-      {/* Bento stats */}
+      {/* Stats strip */}
       {!loading && (
-        <div className="grid grid-cols-4 gap-3 mb-5 max-w-5xl mx-auto">
+        <div style={{
+          display: 'flex', alignItems: 'stretch',
+          background: '#fff', borderBottom: '1.5px solid #ece8e1',
+          marginBottom: 0, flexShrink: 0,
+        }}>
           {[
-            { label: 'Total activas', value: pendientes.length,                                         sub: 'tareas pendientes',     accent: '#c9a84c', onClick: () => { setTab('pendientes'); setPaisFilter('Todos') } },
-            { label: 'Urgentes',      value: pendientes.filter(t => t.prioridad === 'Urgente').length,  sub: 'atención inmediata',    accent: '#dc2626', onClick: () => { setTab('pendientes'); setSortBy('prioridad') } },
-            { label: 'En retraso',    value: pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length, sub: 'fuera de fecha límite', accent: '#d97706', onClick: () => { setTab('pendientes'); setSortBy('fecha') } },
-            { label: 'Finalizadas',   value: finalizados.length,                                        sub: 'tareas archivadas',     accent: '#7c3aed', onClick: () => setTab('hecho') },
-          ].map(({ label, value, sub, accent, onClick }) => (
-            <div key={label} onClick={onClick} style={{
-              background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(18px)',
-              WebkitBackdropFilter: 'blur(18px)', border: '1px solid rgba(255,255,255,0.9)',
-              borderRadius: 16, padding: '18px 20px', position: 'relative', overflow: 'hidden',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-              cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0,0,0,0.1)' }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)' }}
+            { label: 'Total activas', value: pendientes.length,                                         accent: '#2d6a4f', onClick: () => { setTab('pendientes'); setPaisFilter('Todos') } },
+            { label: 'Urgentes',      value: pendientes.filter(t => t.prioridad === 'Urgente').length,  accent: '#c0392b', onClick: () => { setTab('pendientes'); setSortBy('prioridad') } },
+            { label: 'En retraso',    value: pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length, accent: '#b45309', onClick: () => { setTab('pendientes'); setSortBy('fecha') } },
+            { label: 'Finalizadas',   value: finalizados.length,                                        accent: '#5b3fa6', onClick: () => setTab('hecho') },
+          ].map(({ label, value, accent, onClick }, i, arr) => (
+            <button
+              key={label}
+              onClick={onClick}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer',
+                borderRight: i < arr.length - 1 ? '1.5px solid #ece8e1' : 'none',
+                transition: 'background 0.12s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = '#faf8f4'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >
-              <div style={{
-                position: 'absolute', top: -24, right: -24, width: 90, height: 90,
-                borderRadius: '50%', background: accent, opacity: 0.1, filter: 'blur(24px)', pointerEvents: 'none',
-              }} />
-              <div style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#64748b', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#7a6e65', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 2 }}>
                 {label}
-              </div>
-              <div style={{ fontSize: 40, fontWeight: 800, lineHeight: 1, color: accent, letterSpacing: -2 }}>
+              </span>
+              <span style={{ fontFamily: "'Fraunces', serif", fontSize: 36, fontWeight: 300, color: accent, lineHeight: 1, letterSpacing: -1 }}>
                 {value}
-              </div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>{sub}</div>
-            </div>
+              </span>
+            </button>
           ))}
         </div>
       )}
@@ -1443,9 +1433,9 @@ export default function Tareas() {
 
       {/* Tabs */}
       <div style={{
-        display: 'inline-flex', padding: 3, borderRadius: 10, marginBottom: 16,
-        background: 'rgba(255,255,255,0.65)',
-        border: '1px solid rgba(0,0,0,0.07)',
+        display: 'flex', alignItems: 'center',
+        borderBottom: '1.5px solid #ece8e1',
+        background: '#faf8f4', marginBottom: 0, gap: 0,
       }}>
         {[
           { key: 'pendientes', label: 'Pendientes', count: boardPendientes.length },
@@ -1455,22 +1445,23 @@ export default function Tareas() {
             key={key}
             onClick={() => setTab(key)}
             style={{
-              padding: '6px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-              background: tab === key ? '#fff' : 'transparent',
-              color: tab === key ? '#0f172a' : '#94a3b8',
-              fontSize: 12, fontWeight: tab === key ? 600 : 400,
-              display: 'flex', alignItems: 'center', gap: 7,
-              boxShadow: tab === key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
-              transition: 'all 0.15s',
+              padding: '10px 18px', border: 'none', cursor: 'pointer',
+              fontFamily: "'Sora', sans-serif",
+              background: 'none',
+              color: tab === key ? '#1a1410' : '#7a6e65',
+              fontSize: 12, fontWeight: tab === key ? 700 : 400,
+              borderBottom: tab === key ? '2px solid #1a1410' : '2px solid transparent',
+              marginBottom: -1, display: 'flex', alignItems: 'center', gap: 7,
+              transition: 'color 0.12s',
             }}
           >
             {label}
             {count > 0 && (
               <span style={{
-                fontSize: 10, fontFamily: 'JetBrains Mono, monospace',
-                padding: '1px 6px', borderRadius: 20,
-                background: tab === key ? '#f1f5f9' : 'rgba(0,0,0,0.05)',
-                color: tab === key ? '#64748b' : '#cbd5e1',
+                fontFamily: "'DM Mono', monospace", fontSize: 9.5,
+                background: tab === key ? '#1a1410' : '#ece8e1',
+                color: tab === key ? '#faf8f4' : '#7a6e65',
+                padding: '1px 5px',
               }}>{count}</span>
             )}
           </button>
@@ -1478,8 +1469,11 @@ export default function Tareas() {
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 max-w-5xl mx-auto">
-        <span style={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', color: '#94a3b8', letterSpacing: 1 }}>ORDENAR</span>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8,
+        padding: '8px 0 12px', borderBottom: '1.5px solid #ece8e1', marginBottom: 16,
+      }}>
+        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#7a6e65', letterSpacing: 1, textTransform: 'uppercase' }}>Ordenar</span>
         {[
           { key: 'prioridad', label: 'Prioridad' },
           { key: 'fecha',     label: 'Fecha' },
@@ -1488,28 +1482,26 @@ export default function Tareas() {
             key={key}
             onClick={() => setSortBy(key)}
             style={{
-              padding: '5px 12px', borderRadius: 7, cursor: 'pointer',
-              background: sortBy === key ? '#fff' : 'transparent',
-              color: sortBy === key ? '#0f172a' : '#94a3b8',
-              fontSize: 11, fontWeight: sortBy === key ? 600 : 400,
-              border: sortBy === key ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
-              boxShadow: sortBy === key ? '0 1px 3px rgba(0,0,0,0.06)' : 'none',
-              transition: 'all 0.15s',
+              padding: '4px 10px', cursor: 'pointer', fontFamily: "'Sora', sans-serif",
+              background: sortBy === key ? '#1a1410' : 'transparent',
+              color: sortBy === key ? '#faf8f4' : '#4a3f35',
+              border: sortBy === key ? '1.5px solid #1a1410' : '1.5px solid #ece8e1',
+              fontSize: 10, fontWeight: sortBy === key ? 600 : 400,
+              transition: 'all 0.1s',
             }}
           >
             {label}
           </button>
         ))}
-        <div style={{ width: 1, height: 14, background: 'rgba(0,0,0,0.1)' }} />
+        <div style={{ width: 1, height: 16, background: '#ece8e1' }} />
         <select
           value={paisFilter}
           onChange={e => setPaisFilter(e.target.value)}
           style={{
-            background: 'rgba(255,255,255,0.72)',
-            border: '1px solid rgba(0,0,0,0.08)',
-            color: '#64748b', fontSize: 11,
-            padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
-            fontFamily: 'JetBrains Mono, monospace',
+            background: 'transparent', border: '1.5px solid #ece8e1',
+            color: '#4a3f35', fontSize: 10,
+            padding: '4px 8px', cursor: 'pointer',
+            fontFamily: "'DM Mono', monospace",
           }}
         >
           {PAIS_OPTIONS.map(p => <option key={p}>{p}</option>)}
@@ -1517,7 +1509,7 @@ export default function Tareas() {
         {paisFilter !== 'Todos' && (
           <button
             onClick={() => setPaisFilter('Todos')}
-            style={{ fontSize: 10, color: '#94a3b8', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
+            style={{ fontSize: 10, color: '#7a6e65', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', fontFamily: "'Sora', sans-serif" }}
           >
             Limpiar
           </button>
@@ -1549,7 +1541,7 @@ export default function Tareas() {
           />
           {BOARD_PRIORITIES.some(p => hiddenColumns[p]) && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16, paddingLeft: 2, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 9, fontFamily: 'JetBrains Mono, monospace', color: '#cbd5e1', letterSpacing: 1 }}>OCULTAS</span>
+              <span style={{ fontSize: 9, fontFamily: "'DM Mono', monospace", color: '#c9c0b4', letterSpacing: 1, textTransform: 'uppercase' }}>Ocultas</span>
               {BOARD_PRIORITIES.filter(p => hiddenColumns[p]).map(p => {
                 const { color: accent } = ACCENT_MAP[p] || { color: '#64748b' }
                 return (
@@ -1579,8 +1571,7 @@ export default function Tareas() {
               if (!task) return null
               return (
                 <div
-                  className={`${rowHighlightClasses(task.prioridad)} bg-white rounded-xl border border-stone-200 flex items-start gap-2.5 px-3 py-2.5`}
-                  style={{ boxShadow: '0 20px 40px rgba(0,0,0,0.18)', transform: 'rotate(1.5deg) scale(1.02)', opacity: 0.97, width: '260px' }}
+                  style={{ background: '#fff', border: `1.5px solid #ece8e1`, borderLeft: `3px solid ${ACCENT_MAP[task.prioridad]?.color || '#ece8e1'}`, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 11px', boxShadow: '0 16px 36px rgba(0,0,0,0.15)', transform: 'rotate(1.5deg) scale(1.02)', opacity: 0.97, width: '260px' }}
                 >
                   <span className="text-brand-400 mt-0.5 shrink-0 text-xs leading-none select-none">⠿</span>
                   <div className="flex-1 min-w-0">

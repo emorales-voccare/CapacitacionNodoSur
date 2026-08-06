@@ -52,7 +52,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#faf8f4]" style={{ position: 'relative' }}>
+    <div className="flex h-screen overflow-hidden bg-[#f6f3ee]" style={{ position: 'relative' }}>
 
       {/* Backdrop */}
       {sidebarOpen && (
@@ -172,31 +172,23 @@ export default function App() {
       {/* Content — siempre full width */}
       <main className="flex-1 overflow-auto" style={{ position: 'relative', zIndex: 1 }}>
         {/* Top bar con botón hamburguesa */}
-        <div className="sticky top-0 z-10 px-4 py-3 flex items-center gap-3"
-          style={{
-            background: '#faf8f4',
-            borderBottom: '2px solid #1a1410',
-          }}>
+        <div className="sticky top-0 z-10 flex items-stretch"
+          style={{ background: '#1a1410', height: 48, flexShrink: 0 }}>
           <button
             onClick={() => setSidebarOpen(true)}
-            className="transition-colors p-1.5 rounded-lg"
-            style={{ color: '#4a6741', background: 'rgba(74,103,65,0.08)' }}
+            style={{ padding: '0 16px', border: 'none', background: 'transparent', color: 'rgba(246,243,238,0.5)', cursor: 'pointer', borderRight: '1px solid rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center' }}
             title="Abrir menú"
           >
-            <svg viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+            <svg viewBox="0 0 20 20" fill="currentColor" style={{ width: 18, height: 18 }}>
               <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
           </button>
-          <div className="flex items-center gap-2">
-            <div style={{
-              width: 24, height: 24, borderRadius: 7, flexShrink: 0,
-              background: 'linear-gradient(135deg, #4a6741, #c9a84c)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 800, color: '#fff',
-            }}>N</div>
-            <span className="font-bold text-sm tracking-tight" style={{ color: '#1c2711' }}>Nodo Sur</span>
-            <span className="text-stone-300 text-sm">·</span>
-            <span className="text-sm capitalize" style={{ color: '#64748b' }}>{page}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 18px', borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+            <div style={{ width: 24, height: 24, background: '#b83228', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Fraunces', serif", fontWeight: 700, fontSize: 13, color: '#fff', flexShrink: 0 }}>N</div>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontWeight: 700, fontSize: 13, color: '#f6f3ee', letterSpacing: -0.3 }}>Nodo Sur</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', padding: '0 18px' }}>
+            <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 11, color: 'rgba(246,243,238,0.4)', textTransform: 'capitalize' }}>{page}</span>
           </div>
         </div>
 

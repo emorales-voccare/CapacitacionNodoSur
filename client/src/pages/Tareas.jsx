@@ -16,11 +16,11 @@ const FIELD_OPTIONS = {
 const PRIORITY_ORDER = { 'Urgente': 0, 'Alta': 1, 'Firmando': 1.5, 'Baja': 2, 'Solo documentación': 2.5, 'Hecho': 3, '': 4 }
 
 const ACCENT_MAP = {
-  'Urgente':            { color: '#c0392b', dim: 'rgba(192,57,43,0.1)' },
-  'Alta':               { color: '#b45309', dim: 'rgba(180,83,9,0.1)' },
-  'Firmando':           { color: '#5b3fa6', dim: 'rgba(91,63,166,0.1)' },
-  'Baja':               { color: '#2d6a4f', dim: 'rgba(45,106,79,0.1)' },
-  'Solo documentación': { color: '#5c5248', dim: 'rgba(92,82,72,0.08)' },
+  'Urgente':            { color: '#b83228', dim: 'rgba(184,50,40,0.1)',  stripe: '#a02a22', sublabel: 'Atención inmediata' },
+  'Alta':               { color: '#a05c10', dim: 'rgba(160,92,16,0.1)',  stripe: '#8c5010', sublabel: 'Prioridad elevada'  },
+  'Firmando':           { color: '#4e3494', dim: 'rgba(78,52,148,0.1)',  stripe: '#432c82', sublabel: 'Pendiente de firma' },
+  'Baja':               { color: '#276247', dim: 'rgba(39,98,71,0.1)',   stripe: '#215539', sublabel: 'Sin urgencia'       },
+  'Solo documentación': { color: '#4a3f35', dim: 'rgba(74,63,53,0.08)', stripe: '#3d3329', sublabel: 'Solo trámites'      },
 }
 
 function isFullyCompleted(task) {
@@ -269,7 +269,7 @@ function DraggableTaskRow({ task, onOpenDetail, indent }) {
       className={`flex overflow-hidden ${isOver && !isDragging ? 'ring-2 ring-brand-600/40' : ''}`}
       style={{
         background: isDragging ? 'rgba(255,255,255,0.7)' : '#fff',
-        border: `1.5px solid ${hovered && !isDragging ? '#c9c0b4' : '#ece8e1'}`,
+        border: `1.5px solid ${hovered && !isDragging ? '#c9c0b4' : '#ddd8d0'}`,
         borderLeft: `3px solid ${ACCENT_MAP[task.prioridad]?.color || '#ece8e1'}`,
         boxShadow: isDragging
           ? '0 12px 32px rgba(0,0,0,0.16)'
@@ -454,7 +454,9 @@ function TaskDetailModal({ task, isFinalizados, onClose, onFieldChange, onComple
 function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHidden, collapsedGroups, onToggleCollapse, onOpenDetail }) {
   const { setNodeRef, isOver } = useDroppable({ id: `priority:${prioridad}` })
   const { groups, ungrouped } = groupTasks(tasks)
-  const { color: accent, dim: accentDim } = ACCENT_MAP[prioridad] || { color: '#64748b', dim: 'rgba(100,116,139,0.06)' }
+  const { color: accent, dim: accentDim, stripe, sublabel } = ACCENT_MAP[prioridad] || { color: '#64748b', dim: 'rgba(100,116,139,0.06)', stripe: '#5a6472', sublabel: '' }
+  const completedCount = tasks.filter(isFullyCompleted).length
+  const pct = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0
 
   return (
     <motion.div
@@ -468,57 +470,76 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
         maxWidth: isCollapsed ? 48 : 520,
         width: isCollapsed ? 48 : undefined,
         overflow: 'hidden',
-        background: '#faf8f4',
-        border: '1.5px solid #ece8e1',
+        background: '#fff',
+        border: `1.5px solid ${accent}`,
         display: 'flex', flexDirection: 'column',
         alignSelf: 'flex-start',
         transformOrigin: 'top center',
         transition: 'flex 0.3s ease, min-width 0.3s ease, width 0.3s ease',
       }}
     >
-      {/* Header — banda de color sólido */}
+      {/* Header — banda de color con textura diagonal */}
       <div
         onClick={onToggleColumn}
         style={{
-          background: accent, padding: isCollapsed ? '10px 0' : '10px 12px',
+          background: accent, padding: isCollapsed ? '10px 0' : '12px 13px 10px',
           display: 'flex', alignItems: 'center',
           justifyContent: isCollapsed ? 'center' : 'space-between',
-          cursor: 'pointer', flexShrink: 0,
+          cursor: 'pointer', flexShrink: 0, position: 'relative', overflow: 'hidden',
         }}
         title={isCollapsed ? `Expandir ${prioridad}` : 'Colapsar'}
       >
+        {/* Textura diagonal */}
+        {!isCollapsed && (
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none',
+            backgroundImage: `repeating-linear-gradient(45deg, ${stripe} 0px, ${stripe} 1px, transparent 1px, transparent 10px)`,
+            opacity: 0.25,
+          }} />
+        )}
         <AnimatePresence mode="wait" initial={false}>
           {isCollapsed ? (
             <motion.span key="c"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.85)' }}
+              style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, color: 'rgba(255,255,255,0.85)', position: 'relative' }}
             >{tasks.length}</motion.span>
           ) : (
             <motion.div key="e"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.12 }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
+              style={{ width: '100%', position: 'relative' }}
             >
-              <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 0.3, textTransform: 'uppercase' }}>
-                {prioridad}
-              </span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, fontWeight: 500, background: 'rgba(255,255,255,0.22)', color: '#fff', padding: '1px 7px' }}>
-                  {tasks.length}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: -0.2 }}>
+                  {prioridad}
                 </span>
-                <button
-                  onClick={e => { e.stopPropagation(); onToggleHidden() }}
-                  title="Ocultar columna"
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', lineHeight: 1, flexShrink: 0 }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.9)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontFamily: "'Fraunces', serif", fontSize: 28, fontWeight: 300, color: '#fff', lineHeight: 1, opacity: 0.9, letterSpacing: -1, marginTop: -4 }}>
+                    {tasks.length}
+                  </span>
+                  <button
+                    onClick={e => { e.stopPropagation(); onToggleHidden() }}
+                    title="Ocultar columna"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', color: 'rgba(255,255,255,0.55)', display: 'flex', alignItems: 'center', lineHeight: 1, flexShrink: 0 }}
+                    onMouseEnter={e => e.currentTarget.style.color = 'rgba(255,255,255,0.9)'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.55)'}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              {sublabel && (
+                <p style={{ margin: 0, fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#fff', opacity: 0.55, letterSpacing: 0.6, textTransform: 'uppercase' }}>
+                  {sublabel}
+                </p>
+              )}
+              {/* Barra de progreso */}
+              <div style={{ marginTop: 8, height: 2, background: 'rgba(255,255,255,0.2)' }}>
+                <div style={{ height: '100%', width: `${pct}%`, background: 'rgba(255,255,255,0.7)', transition: 'width 0.3s' }} />
               </div>
             </motion.div>
           )}
@@ -557,7 +578,7 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
                 flex: 1, padding: '6px', overflowY: 'auto',
                 display: 'flex', flexDirection: 'column', gap: 0,
                 maxHeight: 'calc(100vh - 290px)', minHeight: 80,
-                background: isOver ? 'rgba(45,106,79,0.04)' : 'transparent',
+                background: isOver ? accentDim : 'transparent',
                 transition: 'background 0.15s',
               }}
             >
@@ -581,7 +602,7 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
                 })}
               </AnimatePresence>
               {tasks.length === 0 && (
-                <div style={{ padding: '28px 12px', textAlign: 'center', color: '#7a6e65', fontSize: 11, fontFamily: "'Sora', sans-serif", borderTop: '1px dashed #ddd8d0' }}>
+                <div style={{ padding: '28px 12px', textAlign: 'center', color: '#7a6e65', fontSize: 11, fontFamily: "'Sora', sans-serif", borderTop: `2px dashed ${accent}22` }}>
                   Sin tareas
                 </div>
               )}
@@ -1327,7 +1348,7 @@ export default function Tareas() {
     <div className="p-4">
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0 12px', borderBottom: '1.5px solid #ece8e1', marginBottom: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '16px 0 12px', borderBottom: '1.5px solid #ddd8d0', marginBottom: 0 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
             <h2 style={{ margin: 0, fontFamily: "'Sora', sans-serif", fontSize: 18, fontWeight: 700, color: '#1a1410', letterSpacing: -0.3 }}>Tareas pendientes</h2>
@@ -1347,7 +1368,7 @@ export default function Tareas() {
             disabled={automationLoading}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', border: '1.5px solid #c9c0b4',
+              padding: '5px 13px', border: '1px solid #ddd8d0',
               background: 'transparent', color: '#4a3f35', fontSize: 11,
               fontFamily: "'Sora', sans-serif", cursor: 'pointer',
               opacity: automationLoading ? 0.6 : 1,
@@ -1364,7 +1385,7 @@ export default function Tareas() {
             disabled={loading}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', border: '1.5px solid #c9c0b4',
+              padding: '5px 13px', border: '1px solid #ddd8d0',
               background: 'transparent', color: '#4a3f35', fontSize: 11,
               fontFamily: "'Sora', sans-serif", cursor: 'pointer',
               opacity: loading ? 0.5 : 1,
@@ -1387,39 +1408,79 @@ export default function Tareas() {
         </div>
       </div>
 
-      {/* Stats strip */}
+      {/* Stats band */}
       {!loading && (
         <div style={{
-          display: 'flex', alignItems: 'stretch',
-          background: '#fff', borderBottom: '1.5px solid #ece8e1',
-          marginBottom: 0, flexShrink: 0,
+          display: 'flex', alignItems: 'stretch', flexShrink: 0,
+          background: '#fff', borderBottom: '1.5px solid #ddd8d0',
         }}>
           {[
-            { label: 'Total activas', value: pendientes.length,                                         accent: '#2d6a4f', onClick: () => { setTab('pendientes'); setPaisFilter('Todos') } },
-            { label: 'Urgentes',      value: pendientes.filter(t => t.prioridad === 'Urgente').length,  accent: '#c0392b', onClick: () => { setTab('pendientes'); setSortBy('prioridad') } },
-            { label: 'En retraso',    value: pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length, accent: '#b45309', onClick: () => { setTab('pendientes'); setSortBy('fecha') } },
-            { label: 'Finalizadas',   value: finalizados.length,                                        accent: '#5b3fa6', onClick: () => setTab('hecho') },
-          ].map(({ label, value, accent, onClick }, i, arr) => (
+            { label: 'Total activas', value: pendientes.length,                                         note: 'pendientes',    accent: '#276247', onClick: () => { setTab('pendientes'); setPaisFilter('Todos') } },
+            { label: 'Urgentes',      value: pendientes.filter(t => t.prioridad === 'Urgente').length,  note: 'crítico',       accent: '#b83228', onClick: () => { setTab('pendientes'); setSortBy('prioridad') } },
+            { label: 'En retraso',    value: pendientes.filter(t => (t.dias_retraso ?? 0) > 0).length, note: 'fuera de fecha', accent: '#a05c10', onClick: () => { setTab('pendientes'); setSortBy('fecha') } },
+            { label: 'Finalizadas',   value: finalizados.length,                                        note: 'archivadas',    accent: '#4e3494', onClick: () => setTab('hecho') },
+          ].map(({ label, value, note, accent, onClick }) => (
             <button
               key={label}
               onClick={onClick}
               style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
-                padding: '12px 20px', background: 'none', border: 'none', cursor: 'pointer',
-                borderRight: i < arr.length - 1 ? '1.5px solid #ece8e1' : 'none',
+                padding: '14px 28px', background: 'none', border: 'none', cursor: 'pointer',
+                borderRight: '1px solid #ddd8d0', minWidth: 130,
                 transition: 'background 0.12s',
               }}
-              onMouseEnter={e => e.currentTarget.style.background = '#faf8f4'}
+              onMouseEnter={e => e.currentTarget.style.background = '#f6f3ee'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#7a6e65', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 2 }}>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9.5, color: '#7a6e65', letterSpacing: 1.3, textTransform: 'uppercase', marginBottom: 4 }}>
                 {label}
               </span>
-              <span style={{ fontFamily: "'Fraunces', serif", fontSize: 36, fontWeight: 300, color: accent, lineHeight: 1, letterSpacing: -1 }}>
-                {value}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <span style={{ fontFamily: "'Fraunces', serif", fontSize: 52, fontWeight: 200, color: accent, lineHeight: 1, letterSpacing: -2 }}>
+                  {value}
+                </span>
+                <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9.5, color: accent, opacity: 0.7, lineHeight: 1.3 }}>
+                  {note}
+                </span>
+              </div>
             </button>
           ))}
+          {/* Filtros integrados */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 10, padding: '0 22px', borderLeft: '1px solid #ddd8d0' }}>
+            <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#7a6e65', letterSpacing: 1.2, textTransform: 'uppercase' }}>Ordenar</span>
+            {[
+              { key: 'prioridad', label: 'Prioridad' },
+              { key: 'fecha',     label: 'Fecha' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                style={{
+                  padding: '4px 11px', cursor: 'pointer', fontFamily: "'Sora', sans-serif",
+                  background: sortBy === key ? '#1a1410' : 'transparent',
+                  color: sortBy === key ? '#f6f3ee' : '#4a3f35',
+                  border: `1px solid ${sortBy === key ? '#1a1410' : '#ddd8d0'}`,
+                  fontSize: 10, fontWeight: sortBy === key ? 600 : 400,
+                  transition: 'all 0.1s',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+            <div style={{ width: 1, height: 16, background: '#ddd8d0' }} />
+            <select
+              value={paisFilter}
+              onChange={e => setPaisFilter(e.target.value)}
+              style={{ background: 'transparent', border: '1px solid #ddd8d0', color: '#4a3f35', fontSize: 10, padding: '4px 8px', cursor: 'pointer', fontFamily: "'DM Mono', monospace" }}
+            >
+              {PAIS_OPTIONS.map(p => <option key={p}>{p}</option>)}
+            </select>
+            {paisFilter !== 'Todos' && (
+              <button onClick={() => setPaisFilter('Todos')} style={{ fontSize: 10, color: '#7a6e65', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', fontFamily: "'Sora', sans-serif" }}>
+                Limpiar
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -1433,9 +1494,9 @@ export default function Tareas() {
 
       {/* Tabs */}
       <div style={{
-        display: 'flex', alignItems: 'center',
-        borderBottom: '1.5px solid #ece8e1',
-        background: '#faf8f4', marginBottom: 0, gap: 0,
+        display: 'flex', alignItems: 'flex-end',
+        borderBottom: '1.5px solid #ddd8d0',
+        background: '#f6f3ee', marginBottom: 0, gap: 0, padding: '0 0',
       }}>
         {[
           { key: 'pendientes', label: 'Pendientes', count: boardPendientes.length },
@@ -1445,22 +1506,21 @@ export default function Tareas() {
             key={key}
             onClick={() => setTab(key)}
             style={{
-              padding: '10px 18px', border: 'none', cursor: 'pointer',
-              fontFamily: "'Sora', sans-serif",
-              background: 'none',
+              padding: '10px 20px', border: 'none', cursor: 'pointer',
+              fontFamily: "'Sora', sans-serif", background: 'none',
               color: tab === key ? '#1a1410' : '#7a6e65',
               fontSize: 12, fontWeight: tab === key ? 700 : 400,
-              borderBottom: tab === key ? '2px solid #1a1410' : '2px solid transparent',
-              marginBottom: -1, display: 'flex', alignItems: 'center', gap: 7,
-              transition: 'color 0.12s',
+              borderBottom: tab === key ? '2px solid #b83228' : '2px solid transparent',
+              marginBottom: -1.5, display: 'flex', alignItems: 'center', gap: 7,
+              transition: 'color 0.1s',
             }}
           >
             {label}
             {count > 0 && (
               <span style={{
                 fontFamily: "'DM Mono', monospace", fontSize: 9.5,
-                background: tab === key ? '#1a1410' : '#ece8e1',
-                color: tab === key ? '#faf8f4' : '#7a6e65',
+                background: tab === key ? '#1a1410' : '#e8e4de',
+                color: tab === key ? '#f6f3ee' : '#7a6e65',
                 padding: '1px 5px',
               }}>{count}</span>
             )}
@@ -1468,53 +1528,6 @@ export default function Tareas() {
         ))}
       </div>
 
-      {/* Filtros */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8,
-        padding: '8px 0 12px', borderBottom: '1.5px solid #ece8e1', marginBottom: 16,
-      }}>
-        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 9, color: '#7a6e65', letterSpacing: 1, textTransform: 'uppercase' }}>Ordenar</span>
-        {[
-          { key: 'prioridad', label: 'Prioridad' },
-          { key: 'fecha',     label: 'Fecha' },
-        ].map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setSortBy(key)}
-            style={{
-              padding: '4px 10px', cursor: 'pointer', fontFamily: "'Sora', sans-serif",
-              background: sortBy === key ? '#1a1410' : 'transparent',
-              color: sortBy === key ? '#faf8f4' : '#4a3f35',
-              border: sortBy === key ? '1.5px solid #1a1410' : '1.5px solid #ece8e1',
-              fontSize: 10, fontWeight: sortBy === key ? 600 : 400,
-              transition: 'all 0.1s',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-        <div style={{ width: 1, height: 16, background: '#ece8e1' }} />
-        <select
-          value={paisFilter}
-          onChange={e => setPaisFilter(e.target.value)}
-          style={{
-            background: 'transparent', border: '1.5px solid #ece8e1',
-            color: '#4a3f35', fontSize: 10,
-            padding: '4px 8px', cursor: 'pointer',
-            fontFamily: "'DM Mono', monospace",
-          }}
-        >
-          {PAIS_OPTIONS.map(p => <option key={p}>{p}</option>)}
-        </select>
-        {paisFilter !== 'Todos' && (
-          <button
-            onClick={() => setPaisFilter('Todos')}
-            style={{ fontSize: 10, color: '#7a6e65', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', fontFamily: "'Sora', sans-serif" }}
-          >
-            Limpiar
-          </button>
-        )}
-      </div>
 
       {/* Contenido */}
       {loading ? (

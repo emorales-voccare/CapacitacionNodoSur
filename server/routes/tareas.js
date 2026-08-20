@@ -5,7 +5,7 @@ const { getSheetValues, updateSheetCell, moveRow, appendRow } = require('../shee
 
 const TASKS_SHEET   = () => process.env.TASKS_SHEET_NAME   || 'Trabajo pendiente'
 const FIN_SHEET     = () => process.env.FINALIZADOS_SHEET_NAME || 'Finalizados'
-const DATA_RANGE    = 'A2:L500'
+const DATA_RANGE    = 'A2:M500'
 
 // Mapeo de campo → letra de columna en Sheets
 const FIELD_COLUMN = {
@@ -14,6 +14,7 @@ const FIELD_COLUMN = {
   documentacion_inicial: 'G',
   finalizado:            'H',
   grupo:                 'L',
+  notas:                 'M',
 }
 
 const FIELD_OPTIONS = {
@@ -59,6 +60,7 @@ function rowToTask(row, rowIndex) {
     mail2:                 row[9]  || '',
     documento:             row[10] || '',
     grupo:                 row[11] || '',
+    notas:                 row[12] || '',
   }
 }
 
@@ -75,7 +77,8 @@ function taskToRow(task) {
     task.mail,
     task.mail2,
     task.documento,
-    task.grupo || '',
+    task.grupo  || '',
+    task.notas  || '',
   ]
 }
 
@@ -105,6 +108,7 @@ router.post('/', async (req, res) => {
       'NO',         // finalizado
       '', '', '',   // mail, mail2, documento
       '',           // grupo — sin grupo al crear
+      '',           // notas
     ])
     res.status(201).json({ success: true })
   } catch (err) {
@@ -115,7 +119,7 @@ router.post('/', async (req, res) => {
 // PUT /api/tareas/:rowIndex — editar todos los campos de una tarea
 router.put('/:rowIndex', async (req, res) => {
   const rowIndex = Number(req.params.rowIndex)
-  const { tarea, pais = '', prioridad = 'Alta', fecha_mail = '', mail = '', mail2 = '', documento = '', grupo = '' } = req.body
+  const { tarea, pais = '', prioridad = 'Alta', fecha_mail = '', mail = '', mail2 = '', documento = '', grupo = '', notas = '' } = req.body
   if (!tarea?.trim()) return res.status(400).json({ error: 'La tarea es requerida' })
 
   try {
@@ -129,9 +133,10 @@ router.put('/:rowIndex', async (req, res) => {
       updateSheetCell(TASKS_SHEET(), rowIndex, 'J', mail2),
       updateSheetCell(TASKS_SHEET(), rowIndex, 'K', documento),
       updateSheetCell(TASKS_SHEET(), rowIndex, 'L', grupo),
+      updateSheetCell(TASKS_SHEET(), rowIndex, 'M', notas),
     ])
 
-    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:L${rowIndex}`)
+    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:M${rowIndex}`)
     const task = rowToTask(rows[0] || [], rowIndex)
     res.json({ task })
   } catch (err) {
@@ -202,8 +207,8 @@ router.patch('/:rowIndex', async (req, res) => {
   if (!FIELD_COLUMN[field]) {
     return res.status(400).json({ error: `Campo no editable: ${field}` })
   }
-  // grupo es texto libre; los demás campos tienen valores permitidos
-  if (field !== 'grupo' && !FIELD_OPTIONS[field].includes(value)) {
+  // grupo y notas son texto libre; los demás campos tienen valores permitidos
+  if (field !== 'grupo' && field !== 'notas' && !FIELD_OPTIONS[field].includes(value)) {
     return res.status(400).json({ error: `Valor inválido para ${field}: "${value}"` })
   }
 
@@ -211,7 +216,7 @@ router.patch('/:rowIndex', async (req, res) => {
     await updateSheetCell(TASKS_SHEET(), rowIndex, FIELD_COLUMN[field], value)
 
     // Re-lee la fila para obtener el estado actual
-    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:L${rowIndex}`)
+    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:M${rowIndex}`)
     const task = rowToTask(rows[0] || [], rowIndex)
 
     res.json({ task, readyToArchive: isFullyCompleted(task) })
@@ -225,7 +230,7 @@ router.post('/:rowIndex/archive', async (req, res) => {
   const rowIndex = Number(req.params.rowIndex)
 
   try {
-    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:L${rowIndex}`)
+    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:M${rowIndex}`)
     if (!rows[0]) return res.status(404).json({ error: 'Fila no encontrada' })
 
     const task = rowToTask(rows[0], rowIndex)
@@ -289,14 +294,54 @@ router.post('/automatizar', async (req, res) => {
   }
 })
 
-// POST /api/tareas/finalizados/:rowIndex/reopen — vuelve a Tareas
+// GET /api/tareas/:rowIndex/comentarios
+router.get('/:rowIndex/comentarios', async (req, res) => {
+  const rowIndex = Number(req.params.rowIndex)
+  try {
+    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:M${rowIndex}`)
+    if (!rows[0]) return res.status(404).json({ error: 'Tarea no encontrada' })
+    const task = rowToTask(rows[0], rowIndex)
+    const taskRef = `${task.pais}::${task.tarea}`
+    const { getPool } = require('../db')
+    const pool = await getPool()
+    const result = await pool.query(
+      'SELECT id, comentario, fecha_hora FROM task_comments WHERE task_ref = $1 ORDER BY fecha_hora ASC',
+      [taskRef]
+    )
+    res.json(result.rows)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/tareas/:rowIndex/comentarios
+router.post('/:rowIndex/comentarios', async (req, res) => {
+  const rowIndex = Number(req.params.rowIndex)
+  const { comentario } = req.body
+  if (!comentario?.trim()) return res.status(400).json({ error: 'Comentario requerido' })
+  try {
+    const rows = await getSheetValues(TASKS_SHEET(), `A${rowIndex}:M${rowIndex}`)
+    if (!rows[0]) return res.status(404).json({ error: 'Tarea no encontrada' })
+    const task = rowToTask(rows[0], rowIndex)
+    const taskRef = `${task.pais}::${task.tarea}`
+    const { getPool } = require('../db')
+    const pool = await getPool()
+    const result = await pool.query(
+      'INSERT INTO task_comments (task_ref, comentario) VALUES ($1, $2) RETURNING *',
+      [taskRef, comentario.trim()]
+    )
+    res.json(result.rows[0])
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // POST /api/tareas/finalizados/:rowIndex/reopen — vuelve a Tareas
 router.post('/finalizados/:rowIndex/reopen', async (req, res) => {
   const rowIndex = Number(req.params.rowIndex)
 
   try {
-    const rows = await getSheetValues(FIN_SHEET(), `A${rowIndex}:L${rowIndex}`)
+    const rows = await getSheetValues(FIN_SHEET(), `A${rowIndex}:M${rowIndex}`)
     if (!rows[0]) return res.status(404).json({ error: 'Fila no encontrada' })
 
     const task = rowToTask(rows[0], rowIndex)

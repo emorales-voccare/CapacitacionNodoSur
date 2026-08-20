@@ -56,7 +56,7 @@ In dev, Vite proxies `/api/*` to `http://localhost:3001`. In production, Express
 
 - `server/index.js` — Entry point. Initializes DB, mounts routers, serves static in production.
 - `server/db.js` — PostgreSQL via `pg` Pool. Lazy-initializes with IPv4 DNS resolution. `initDB()` creates tables if they don't exist (`coordinadores`, `doc_folders`, `doc_items`).
-- `server/sheets.js` — Google Sheets API client (googleapis). Provides: `getSheetValues`, `updateSheetCell`, `appendRow`, `deleteRow`, `moveRow`. Caches sheet numeric IDs. The `GOOGLE_PRIVATE_KEY` env var is normalized here (strips outer quotes, converts `\n` literals to real newlines). `appendRow` has a custom implementation: it reads the full sheet (columns A:L) first to find the true last occupied row, avoiding overwrites caused by sparse data. **If the sheet schema ever grows beyond column L, update the `A:L` range in `appendRow`.**
+- `server/sheets.js` — Google Sheets API client (googleapis). Provides: `getSheetValues`, `updateSheetCell`, `appendRow`, `deleteRow`, `moveRow`. Caches sheet numeric IDs. The `GOOGLE_PRIVATE_KEY` env var is normalized here (strips outer quotes, converts `\n` literals to real newlines). `appendRow` has a custom implementation: it reads the full sheet (columns A:M) first to find the true last occupied row, avoiding overwrites caused by sparse data. **If the sheet schema ever grows beyond column M, update the `A:M` range in `appendRow`.**
 - `server/routes/coordinadores.js` — CRUD for coordinadores table + `POST /export/sheets` which creates a formatted sheet in the Google Spreadsheet.
 - `server/routes/tareas.js` — Tasks backed entirely by Google Sheets (no DB). Reads/writes to the `TASKS_SHEET_NAME` and `FINALIZADOS_SHEET_NAME` tabs. Row index is used as the record identifier (1-based, row 1 is header). Includes archive/reopen (move between sheets) and `POST /automatizar` to trigger an Apps Script. **Route ordering matters:** `/finalizados`, `/meta`, and `/automatizar` must be defined before `/:rowIndex` so Express doesn't treat those path segments as numeric IDs.
 - `server/routes/import.js` — Imports coordinadores from a public Google Sheets CSV URL (preview + confirm with replace/append modes).
@@ -112,6 +112,7 @@ Row 1 is the header. Data starts at row 2. The `rowIndex` used as the record ID 
 | J | `mail2` | Free text |
 | K | `documento` | Free text |
 | L | `grupo` | Free text |
+| M | `notas` | Free text |
 
 A task is auto-eligible for archiving (`readyToArchive: true`) when: `prioridad === 'Hecho'` AND `libreria_intranet === 'Hecho'` AND `documentacion_inicial === '✅ Finalizado'` AND `finalizado === 'SÍ'`. The PATCH endpoint returns this flag; the frontend decides whether to prompt the user.
 
@@ -121,7 +122,7 @@ The `coordinadores` table columns for each of the 7 countries (`argentina`, `chi
 
 When exporting to Sheets, values are divided by 100 and written as decimals so Google Sheets' `PERCENT` format displays them correctly (`0.5` → `50%`).
 
-The Coordinadores page also supports local `.xlsx` download using `xlsx-js-style` (client-side). The map in `SouthAmericaMap.jsx` uses `react-simple-maps`. The Tareas page renders as a **Kanban board** with columns for each priority in `BOARD_PRIORITIES` (`['Urgente', 'Alta', 'Firmando', 'Baja', 'Solo documentación']`); tasks with `prioridad === 'Hecho'` are hidden from the board. Drag-and-drop between columns uses `useDraggable`/`useDroppable` from `@dnd-kit/core` directly (not `@dnd-kit/sortable`), with `framer-motion` for animations. Reads are capped at `A2:L500` (499 tasks max) — update `DATA_RANGE` in `server/routes/tareas.js` if more rows are needed.
+The Coordinadores page also supports local `.xlsx` download using `xlsx-js-style` (client-side). The map in `SouthAmericaMap.jsx` uses `react-simple-maps`. The Tareas page renders as a **Kanban board** with columns for each priority in `BOARD_PRIORITIES` (`['Urgente', 'Alta', 'Firmando', 'Baja', 'Solo documentación']`); tasks with `prioridad === 'Hecho'` are hidden from the board. Drag-and-drop between columns uses `useDraggable`/`useDroppable` from `@dnd-kit/core` directly (not `@dnd-kit/sortable`), with `framer-motion` for animations. Reads are capped at `A2:M500` (499 tasks max) — update `DATA_RANGE` in `server/routes/tareas.js` if more rows are needed.
 
 Note: `xlsx` (root `dependencies`) is used server-side for export. `xlsx-js-style` (`client/dependencies`) is the client-side counterpart — they are separate packages.
 

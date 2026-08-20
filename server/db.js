@@ -64,6 +64,17 @@ async function initDB() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS task_comments (
+      id         SERIAL PRIMARY KEY,
+      task_ref   TEXT NOT NULL,
+      comentario TEXT NOT NULL,
+      fecha_hora TIMESTAMPTZ DEFAULT NOW()
+    )
+  `)
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS task_comments_task_ref_idx ON task_comments(task_ref)
+  `)
 }
 
 module.exports = { getPool, initDB }

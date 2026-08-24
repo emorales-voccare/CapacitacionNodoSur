@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Fragment } from 'react'
+import { useState, useEffect, useCallback, useRef, Fragment } from 'react'
 import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import { motion, AnimatePresence } from 'framer-motion'
 import InlineDropdown from '../components/InlineDropdown'
@@ -1085,6 +1085,23 @@ export default function Tareas() {
   const [detailInfo,setDetailInfo]         = useState(null)
   const [cola,setCola]                     = useState([])
   const [colaAbierta,setColaAbierta]       = useState(false)
+  const colaHydrated                       = useRef(false)
+
+  // Rehidratar cola desde localStorage la primera vez que pendientes carga
+  useEffect(() => {
+    if (colaHydrated.current || !pendientes.length) return
+    try {
+      const stored = JSON.parse(localStorage.getItem('tareas_cola') || '[]')
+      setCola(stored.map(idx => pendientes.find(t => t.rowIndex === idx)).filter(Boolean))
+    } catch {}
+    colaHydrated.current = true
+  }, [pendientes])
+
+  // Persistir orden de cola en localStorage en cada cambio
+  useEffect(() => {
+    if (!colaHydrated.current) return
+    localStorage.setItem('tareas_cola', JSON.stringify(cola.map(t => t.rowIndex)))
+  }, [cola])
 
   function toggleEnCola(task) {
     setCola(prev => {

@@ -518,13 +518,8 @@ function NuevaTareaModal({ onClose, onCreated }) {
 
 // ── Cola de trabajo ─────────────────────────────────────────────────────────
 function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle, onAvanzar }) {
-  const [expandedIdx, setExpandedIdx] = useState(null)
   const activa = cola[0] || null
   const proximas = cola.slice(1)
-
-  function toggleExpanded(idx) {
-    setExpandedIdx(prev => prev === idx ? null : idx)
-  }
   const accentActiva = activa ? (ACCENT_MAP[activa.prioridad]?.color || INK) : INK
   const dimActiva    = activa ? (ACCENT_MAP[activa.prioridad]?.dim   || 'rgba(10,10,10,0.04)') : 'transparent'
 
@@ -625,74 +620,42 @@ function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle, onAvanzar
                   {proximas.map((task, i) => {
                     const idx = i + 1
                     const ac = ACCENT_MAP[task.prioridad]?.color || INK
-                    const isExpanded = expandedIdx === idx
                     return (
                       <motion.div key={task.rowIndex}
                         layout
                         initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-4 }}
                         transition={{ duration:0.15 }}
                         style={{
-                          background: isExpanded ? '#fff' : '#f8f8f8',
-                          border:`1.5px solid ${INK}`,
-                          boxShadow: isExpanded ? `3px 3px 0 ${INK}` : `1.5px 1.5px 0 ${INK}`,
+                          display:'flex', alignItems:'stretch',
+                          background:'#f8f8f8', border:`1.5px solid ${INK}`,
+                          boxShadow:`1.5px 1.5px 0 ${INK}`,
                           borderLeft:`3px solid ${ac}`,
                         }}
                       >
-                        {/* Fila principal — siempre visible */}
-                        <div style={{ display:'flex', alignItems:'stretch', cursor:'pointer' }}
-                          onClick={()=>toggleExpanded(idx)}>
-                          {/* Número */}
-                          <div style={{ width:26, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', borderRight:`1px solid rgba(10,10,10,0.1)`, fontFamily:MONO, fontSize:10, fontWeight:700, color: isExpanded ? INK : T3 }}>
-                            {String(idx+1).padStart(2,'0')}
+                        {/* Número */}
+                        <div style={{ width:26, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', borderRight:`1px solid rgba(10,10,10,0.1)`, fontFamily:MONO, fontSize:10, fontWeight:700, color:T3 }}>
+                          {String(idx+1).padStart(2,'0')}
+                        </div>
+                        {/* Info */}
+                        <div style={{ flex:1, padding:'7px 10px', minWidth:0 }}>
+                          <div style={{ fontSize:11, fontWeight:600, color:INK, lineHeight:1.4 }}>
+                            {task.tarea}
                           </div>
-                          {/* Título */}
-                          <div style={{ flex:1, padding:'7px 10px', minWidth:0 }}>
-                            <div style={{ fontSize:11, fontWeight:600, color:INK, lineHeight:1.35, overflow:'hidden', textOverflow:'ellipsis', whiteSpace: isExpanded ? 'normal' : 'nowrap' }}>
-                              {task.tarea}
-                            </div>
-                          </div>
-                          {/* Chevron */}
-                          <div style={{ width:24, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, color:T3, fontSize:9, transition:'transform 0.2s', transform: isExpanded ? 'rotate(180deg)' : 'none' }}>
-                            ▼
-                          </div>
-                          {/* Controles */}
-                          <div style={{ display:'flex', flexDirection:'column', borderLeft:`1px solid rgba(10,10,10,0.08)`, flexShrink:0 }} onClick={e=>e.stopPropagation()}>
-                            <button onClick={()=>onMover(idx,-1)}
-                              style={{ flex:1, width:28, background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:'pointer', color:T3, fontSize:9 }}>▲</button>
-                            <button onClick={()=>onMover(idx,1)} disabled={idx===cola.length-1}
-                              style={{ flex:1, width:28, background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:idx===cola.length-1?'default':'pointer', color:idx===cola.length-1?'rgba(10,10,10,0.15)':T3, fontSize:9 }}>▼</button>
-                            <button onClick={()=>onQuitar(task.rowIndex)}
-                              style={{ flex:1, width:28, background:'none', border:'none', cursor:'pointer', color:'#ff3d3d', fontSize:12, fontWeight:700 }}>×</button>
+                          <div style={{ display:'flex', gap:5, marginTop:4, alignItems:'center', flexWrap:'wrap' }}>
+                            <CountryBadge pais={task.pais} />
+                            {task.dias_retraso > 0 && <DelayBadge dias={task.dias_retraso} />}
+                            {task.fecha_mail && <span style={{ fontSize:9, fontFamily:MONO, color:T3 }}>{task.fecha_mail}</span>}
                           </div>
                         </div>
-                        {/* Detalle expandido */}
-                        <AnimatePresence initial={false}>
-                          {isExpanded && (
-                            <motion.div
-                              initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }} exit={{ height:0, opacity:0 }}
-                              transition={{ duration:0.18, ease:'easeInOut' }}
-                              style={{ overflow:'hidden' }}
-                            >
-                              <div style={{ padding:'8px 10px 10px 36px', borderTop:`1px solid rgba(10,10,10,0.08)` }}>
-                                <div style={{ display:'flex', gap:6, flexWrap:'wrap', alignItems:'center' }}>
-                                  <CountryBadge pais={task.pais} />
-                                  <DelayBadge dias={task.dias_retraso} />
-                                  {task.prioridad && (
-                                    <span style={{ fontSize:9, fontFamily:MONO, fontWeight:700, color:ac, background:'#fff', border:`1.5px solid ${INK}`, padding:'2px 7px', letterSpacing:0.5, textTransform:'uppercase' }}>
-                                      {task.prioridad}
-                                    </span>
-                                  )}
-                                  {task.fecha_mail && (
-                                    <span style={{ fontSize:9, fontFamily:MONO, color:T3 }}>{task.fecha_mail}</span>
-                                  )}
-                                </div>
-                                {task.notas && (
-                                  <p style={{ margin:'8px 0 0', fontSize:11, color:T2, lineHeight:1.5, fontStyle:'italic' }}>{task.notas}</p>
-                                )}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        {/* Controles */}
+                        <div style={{ display:'flex', flexDirection:'column', borderLeft:`1px solid rgba(10,10,10,0.08)`, flexShrink:0 }}>
+                          <button onClick={()=>onMover(idx,-1)}
+                            style={{ flex:1, width:28, background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:'pointer', color:T3, fontSize:9 }}>▲</button>
+                          <button onClick={()=>onMover(idx,1)} disabled={idx===cola.length-1}
+                            style={{ flex:1, width:28, background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:idx===cola.length-1?'default':'pointer', color:idx===cola.length-1?'rgba(10,10,10,0.15)':T3, fontSize:9 }}>▼</button>
+                          <button onClick={()=>onQuitar(task.rowIndex)}
+                            style={{ flex:1, width:28, background:'none', border:'none', cursor:'pointer', color:'#ff3d3d', fontSize:12, fontWeight:700 }}>×</button>
+                        </div>
                       </motion.div>
                     )
                   })}

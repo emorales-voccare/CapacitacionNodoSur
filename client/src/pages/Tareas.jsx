@@ -517,7 +517,12 @@ function NuevaTareaModal({ onClose, onCreated }) {
 }
 
 // ── Cola de trabajo ─────────────────────────────────────────────────────────
-function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle }) {
+function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle, onAvanzar }) {
+  const activa = cola[0] || null
+  const proximas = cola.slice(1)
+  const accentActiva = activa ? (ACCENT_MAP[activa.prioridad]?.color || INK) : INK
+  const dimActiva    = activa ? (ACCENT_MAP[activa.prioridad]?.dim   || 'rgba(10,10,10,0.04)') : 'transparent'
+
   return (
     <>
       <motion.div
@@ -539,72 +544,139 @@ function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle }) {
         }}
         onClick={e=>e.stopPropagation()}
       >
-        {/* Header */}
-        <div style={{ padding:'16px 20px', borderBottom:`1.5px solid ${INK}`, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <span style={{ fontSize:13, fontWeight:700, color:INK }}>Cola de trabajo</span>
-            <span style={{ fontSize:10, fontFamily:MONO, color:'#fffdf9', background:INK, padding:'1px 7px', border:`1px solid ${INK}` }}>{cola.length}</span>
+        {/* ── Header ── */}
+        <div style={{ padding:'14px 18px 12px', borderBottom:`1.5px solid ${INK}`, flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:12, fontWeight:700, color:INK, textTransform:'uppercase', letterSpacing:0.5 }}>Cola de trabajo</span>
+              <span style={{ fontSize:10, fontFamily:MONO, color:'#fffdf9', background:INK, padding:'1px 6px' }}>{cola.length}</span>
+            </div>
+            <button onClick={onClose} style={{ color:T3, fontSize:20, lineHeight:1, background:'none', border:'none', cursor:'pointer' }}>×</button>
           </div>
-          <button onClick={onClose} style={{ color:T3, fontSize:22, lineHeight:1, background:'none', border:'none', cursor:'pointer' }}>×</button>
+          {/* Barra de progreso */}
+          {cola.length > 0 && (
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ flex:1, height:6, background:'#f0f0f0', border:`1px solid ${INK}`, overflow:'hidden' }}>
+                <div style={{ height:'100%', background:accentActiva, width:`${(1/cola.length)*100}%`, transition:'width 0.3s' }} />
+              </div>
+              <span style={{ fontSize:9, fontFamily:MONO, color:T3, whiteSpace:'nowrap' }}>1 de {cola.length}</span>
+            </div>
+          )}
         </div>
 
-        {/* Lista */}
-        <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
-          {cola.length === 0 ? (
-            <div style={{ textAlign:'center', padding:'48px 20px', color:T3, fontSize:12, lineHeight:1.6 }}>
-              <div style={{ fontSize:24, marginBottom:10 }}>📋</div>
-              Hacé clic en <strong>+</strong> sobre cualquier tarea para agregarla a la cola
+        <div style={{ flex:1, overflowY:'auto' }}>
+
+          {/* ── Estado vacío ── */}
+          {cola.length === 0 && (
+            <div style={{ textAlign:'center', padding:'60px 24px', color:T3, fontSize:12, lineHeight:1.7 }}>
+              <div style={{ fontFamily:SERIF, fontSize:48, fontWeight:200, color:'rgba(10,10,10,0.12)', lineHeight:1, marginBottom:16 }}>0</div>
+              Hacé clic en <strong style={{ color:INK }}>+</strong> sobre cualquier tarea del tablero para agregarla
             </div>
-          ) : cola.map((task, idx) => {
-            const accent = ACCENT_MAP[task.prioridad]?.color || INK
-            return (
-              <div key={task.rowIndex} style={{
-                background: idx===0 ? '#fffdf9' : '#f8f8f8',
-                border:`1.5px solid ${INK}`,
-                boxShadow: idx===0 ? `3px 3px 0 ${INK}` : `1px 1px 0 ${INK}`,
-                borderLeft:`4px solid ${accent}`,
-                display:'flex', alignItems:'stretch', gap:0,
-              }}>
-                {/* Número */}
-                <div style={{
-                  width:28, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
-                  background: idx===0 ? INK : '#f0f0f0',
-                  color: idx===0 ? '#fffdf9' : T3,
-                  borderRight:`1px solid rgba(10,10,10,0.1)`,
-                  fontFamily:MONO, fontSize:11, fontWeight:700,
-                }}>
-                  {idx+1}
+          )}
+
+          {/* ── Tarea activa ── */}
+          {activa && (
+            <div style={{ margin:'16px 16px 0', background:dimActiva, border:`1.5px solid ${INK}`, boxShadow:`4px 4px 0 ${INK}`, borderTop:`4px solid ${accentActiva}` }}>
+              <div style={{ padding:'14px 16px 0' }}>
+                {/* Número grande estilo Fraunces */}
+                <div style={{ fontFamily:SERIF, fontSize:56, fontWeight:200, color:accentActiva, lineHeight:1, letterSpacing:-2, marginBottom:6, opacity:0.85 }}>
+                  01
                 </div>
-                {/* Contenido */}
-                <div style={{ flex:1, padding:'9px 10px', minWidth:0 }}>
-                  <div style={{ fontSize:12, fontWeight:600, color:INK, lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {task.tarea}
-                  </div>
-                  <div style={{ display:'flex', gap:6, marginTop:5, alignItems:'center' }}>
-                    <CountryBadge pais={task.pais} />
-                    <span style={{ fontSize:9, fontFamily:MONO, color:T3, textTransform:'uppercase', letterSpacing:0.5 }}>{task.prioridad}</span>
-                  </div>
-                </div>
-                {/* Acciones */}
-                <div style={{ display:'flex', flexDirection:'column', borderLeft:`1px solid rgba(10,10,10,0.1)`, flexShrink:0 }}>
-                  <button onClick={()=>onMover(idx,-1)} disabled={idx===0}
-                    style={{ flex:1, padding:'0 8px', background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:idx===0?'default':'pointer', color:idx===0?'rgba(10,10,10,0.2)':T2, fontSize:10 }}>▲</button>
-                  <button onClick={()=>onMover(idx,1)} disabled={idx===cola.length-1}
-                    style={{ flex:1, padding:'0 8px', background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:idx===cola.length-1?'default':'pointer', color:idx===cola.length-1?'rgba(10,10,10,0.2)':T2, fontSize:10 }}>▼</button>
-                  <button onClick={()=>onQuitar(task.rowIndex)}
-                    style={{ flex:1, padding:'0 8px', background:'none', border:'none', cursor:'pointer', color:'#ff3d3d', fontSize:13, fontWeight:700 }}>×</button>
+                <p style={{ margin:'0 0 10px', fontSize:14, fontWeight:700, color:INK, lineHeight:1.45 }}>
+                  {activa.tarea}
+                </p>
+                <div style={{ display:'flex', alignItems:'center', gap:6, flexWrap:'wrap', marginBottom:14 }}>
+                  <CountryBadge pais={activa.pais} />
+                  <DelayBadge dias={activa.dias_retraso} />
+                  {activa.prioridad && (
+                    <span style={{ fontSize:9, fontFamily:MONO, fontWeight:700, color:accentActiva, background:'#fff', border:`1.5px solid ${INK}`, padding:'2px 7px', letterSpacing:0.5, textTransform:'uppercase' }}>
+                      {activa.prioridad}
+                    </span>
+                  )}
                 </div>
               </div>
-            )
-          })}
+              {/* Acciones tarea activa */}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:`1.5px solid ${INK}` }}>
+                <button onClick={()=>onAbrirDetalle(activa)}
+                  style={{ padding:'10px 0', background:accentActiva, color:'#fff', border:'none', borderRight:`1px solid ${INK}`, fontFamily:SANS, fontSize:11, fontWeight:700, cursor:'pointer', letterSpacing:0.2 }}>
+                  Abrir detalle
+                </button>
+                <button onClick={onAvanzar} disabled={cola.length<=1}
+                  style={{ padding:'10px 0', background:'#fffdf9', color: cola.length<=1 ? 'rgba(10,10,10,0.25)' : INK, border:'none', fontFamily:SANS, fontSize:11, fontWeight:700, cursor: cola.length<=1 ? 'default' : 'pointer', letterSpacing:0.2 }}>
+                  Avanzar →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Próximas tareas ── */}
+          {proximas.length > 0 && (
+            <div style={{ margin:'20px 16px 16px' }}>
+              <div style={{ fontSize:9, fontFamily:MONO, color:T3, letterSpacing:1.2, textTransform:'uppercase', marginBottom:8 }}>
+                Próximas — click para subir al tope
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                <AnimatePresence initial={false}>
+                  {proximas.map((task, i) => {
+                    const idx = i + 1
+                    const ac = ACCENT_MAP[task.prioridad]?.color || INK
+                    return (
+                      <motion.div key={task.rowIndex}
+                        layout
+                        initial={{ opacity:0, y:6 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-4 }}
+                        transition={{ duration:0.15 }}
+                        style={{
+                          display:'flex', alignItems:'stretch',
+                          background:'#f8f8f8', border:`1.5px solid ${INK}`,
+                          boxShadow:`1.5px 1.5px 0 ${INK}`,
+                          borderLeft:`3px solid ${ac}`,
+                          cursor:'pointer',
+                        }}
+                        onClick={()=>{ for(let k=idx;k>0;k--) onMover(k,-1) }}
+                        whileHover={{ backgroundColor:'#f0f0f0', x:-1, y:-1, boxShadow:`2.5px 2.5px 0 ${INK}` }}
+                      >
+                        {/* Número */}
+                        <div style={{ width:26, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', borderRight:`1px solid rgba(10,10,10,0.1)`, fontFamily:MONO, fontSize:10, fontWeight:700, color:T3 }}>
+                          {String(idx+1).padStart(2,'0')}
+                        </div>
+                        {/* Info */}
+                        <div style={{ flex:1, padding:'7px 10px', minWidth:0 }}>
+                          <div style={{ fontSize:11, fontWeight:600, color:INK, lineHeight:1.35, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                            {task.tarea}
+                          </div>
+                          <div style={{ display:'flex', gap:5, marginTop:4, alignItems:'center' }}>
+                            <CountryBadge pais={task.pais} />
+                            {task.dias_retraso > 0 && <DelayBadge dias={task.dias_retraso} />}
+                          </div>
+                        </div>
+                        {/* Controles */}
+                        <div style={{ display:'flex', flexDirection:'column', borderLeft:`1px solid rgba(10,10,10,0.08)`, flexShrink:0 }} onClick={e=>e.stopPropagation()}>
+                          <button onClick={()=>onMover(idx,-1)}
+                            style={{ flex:1, width:28, background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:'pointer', color:T3, fontSize:9 }}>▲</button>
+                          <button onClick={()=>onMover(idx,1)} disabled={idx===cola.length-1}
+                            style={{ flex:1, width:28, background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:idx===cola.length-1?'default':'pointer', color:idx===cola.length-1?'rgba(10,10,10,0.15)':T3, fontSize:9 }}>▼</button>
+                          <button onClick={()=>onQuitar(task.rowIndex)}
+                            style={{ flex:1, width:28, background:'none', border:'none', cursor:'pointer', color:'#ff3d3d', fontSize:12, fontWeight:700 }}>×</button>
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer */}
+        {/* ── Footer ── */}
         {cola.length > 0 && (
-          <div style={{ padding:'12px 14px', borderTop:`1.5px solid ${INK}`, flexShrink:0 }}>
-            <button onClick={()=>onAbrirDetalle(cola[0])}
-              style={{ width:'100%', padding:'10px 0', background:INK, color:'#fffdf9', border:`1.5px solid ${INK}`, boxShadow:`2px 2px 0 rgba(10,10,10,0.3)`, fontFamily:SANS, fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:0.2 }}>
-              Abrir primera tarea →
+          <div style={{ padding:'12px 16px', borderTop:`1.5px solid ${INK}`, flexShrink:0, display:'flex', gap:8 }}>
+            <button onClick={()=>onQuitar(activa.rowIndex)}
+              style={{ flex:1, padding:'8px 0', background:'#fffdf9', color:INK, border:`1.5px solid ${INK}`, boxShadow:`2px 2px 0 ${INK}`, fontFamily:SANS, fontSize:11, fontWeight:600, cursor:'pointer' }}>
+              Quitar activa
+            </button>
+            <button onClick={()=>cola.forEach(t=>onQuitar(t.rowIndex))}
+              style={{ padding:'8px 14px', background:'#fff5f5', color:'#ff3d3d', border:`1.5px solid #ff3d3d`, fontFamily:SANS, fontSize:11, fontWeight:600, cursor:'pointer' }}>
+              Limpiar todo
             </button>
           </div>
         )}
@@ -1032,6 +1104,9 @@ export default function Tareas() {
   }
   function quitarDeCola(rowIndex) {
     setCola(prev => prev.filter(t=>t.rowIndex!==rowIndex))
+  }
+  function avanzarCola() {
+    setCola(prev => prev.slice(1))
   }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint:{ distance:4 } }))
@@ -1497,6 +1572,7 @@ export default function Tareas() {
             onClose={()=>setColaAbierta(false)}
             onMover={moverEnCola}
             onQuitar={quitarDeCola}
+            onAvanzar={avanzarCola}
             onAbrirDetalle={task=>{ setColaAbierta(false); setDetailInfo({rowIndex:task.rowIndex,source:'pendientes'}) }}
           />
         )}

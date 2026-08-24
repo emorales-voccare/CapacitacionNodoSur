@@ -520,8 +520,9 @@ function NuevaTareaModal({ onClose, onCreated }) {
 function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle, onAvanzar }) {
   const activa = cola[0] || null
   const proximas = cola.slice(1)
-  const accentActiva = activa ? (ACCENT_MAP[activa.prioridad]?.color || INK) : INK
-  const dimActiva    = activa ? (ACCENT_MAP[activa.prioridad]?.dim   || 'rgba(10,10,10,0.04)') : 'transparent'
+  const accentActiva = activa
+    ? (COUNTRY_PALETTE[activa.pais?.toLowerCase()] || ACCENT_MAP[activa.prioridad]?.color || INK)
+    : INK
 
   return (
     <>
@@ -576,7 +577,7 @@ function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle, onAvanzar
 
           {/* ── Tarea activa ── */}
           {activa && (
-            <div style={{ margin:'16px 16px 0', background:dimActiva, border:`1.5px solid ${INK}`, boxShadow:`4px 4px 0 ${INK}`, borderTop:`4px solid ${accentActiva}` }}>
+            <div style={{ margin:'16px 16px 0', background:'#fffdf9', border:`1.5px solid ${INK}`, boxShadow:`4px 4px 0 ${INK}`, borderTop:`4px solid ${accentActiva}` }}>
               <div style={{ padding:'14px 16px 0' }}>
                 {/* Número grande estilo Fraunces */}
                 <div style={{ fontFamily:SERIF, fontSize:56, fontWeight:200, color:accentActiva, lineHeight:1, letterSpacing:-2, marginBottom:6, opacity:0.85 }}>

@@ -516,6 +516,103 @@ function NuevaTareaModal({ onClose, onCreated }) {
   )
 }
 
+// ── Cola de trabajo ─────────────────────────────────────────────────────────
+function ColaPanel({ cola, onClose, onMover, onQuitar, onAbrirDetalle }) {
+  return (
+    <>
+      <motion.div
+        key="cola-overlay"
+        initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+        transition={{ duration:0.18 }}
+        style={{ position:'fixed', inset:0, background:'rgba(10,10,10,0.45)', zIndex:60 }}
+        onClick={onClose}
+      />
+      <motion.div
+        key="cola-panel"
+        initial={{ x:420 }} animate={{ x:0 }} exit={{ x:420 }}
+        transition={{ type:'spring', damping:30, stiffness:300 }}
+        style={{
+          position:'fixed', top:0, right:0, bottom:0, width:400,
+          background:'#fffdf9', borderLeft:`1.5px solid ${INK}`,
+          boxShadow:`-6px 0 0 ${INK}`, zIndex:61,
+          display:'flex', flexDirection:'column', fontFamily:SANS,
+        }}
+        onClick={e=>e.stopPropagation()}
+      >
+        {/* Header */}
+        <div style={{ padding:'16px 20px', borderBottom:`1.5px solid ${INK}`, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <span style={{ fontSize:13, fontWeight:700, color:INK }}>Cola de trabajo</span>
+            <span style={{ fontSize:10, fontFamily:MONO, color:'#fffdf9', background:INK, padding:'1px 7px', border:`1px solid ${INK}` }}>{cola.length}</span>
+          </div>
+          <button onClick={onClose} style={{ color:T3, fontSize:22, lineHeight:1, background:'none', border:'none', cursor:'pointer' }}>×</button>
+        </div>
+
+        {/* Lista */}
+        <div style={{ flex:1, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+          {cola.length === 0 ? (
+            <div style={{ textAlign:'center', padding:'48px 20px', color:T3, fontSize:12, lineHeight:1.6 }}>
+              <div style={{ fontSize:24, marginBottom:10 }}>📋</div>
+              Hacé clic en <strong>+</strong> sobre cualquier tarea para agregarla a la cola
+            </div>
+          ) : cola.map((task, idx) => {
+            const accent = ACCENT_MAP[task.prioridad]?.color || INK
+            return (
+              <div key={task.rowIndex} style={{
+                background: idx===0 ? '#fffdf9' : '#f8f8f8',
+                border:`1.5px solid ${INK}`,
+                boxShadow: idx===0 ? `3px 3px 0 ${INK}` : `1px 1px 0 ${INK}`,
+                borderLeft:`4px solid ${accent}`,
+                display:'flex', alignItems:'stretch', gap:0,
+              }}>
+                {/* Número */}
+                <div style={{
+                  width:28, flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center',
+                  background: idx===0 ? INK : '#f0f0f0',
+                  color: idx===0 ? '#fffdf9' : T3,
+                  borderRight:`1px solid rgba(10,10,10,0.1)`,
+                  fontFamily:MONO, fontSize:11, fontWeight:700,
+                }}>
+                  {idx+1}
+                </div>
+                {/* Contenido */}
+                <div style={{ flex:1, padding:'9px 10px', minWidth:0 }}>
+                  <div style={{ fontSize:12, fontWeight:600, color:INK, lineHeight:1.4, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                    {task.tarea}
+                  </div>
+                  <div style={{ display:'flex', gap:6, marginTop:5, alignItems:'center' }}>
+                    <CountryBadge pais={task.pais} />
+                    <span style={{ fontSize:9, fontFamily:MONO, color:T3, textTransform:'uppercase', letterSpacing:0.5 }}>{task.prioridad}</span>
+                  </div>
+                </div>
+                {/* Acciones */}
+                <div style={{ display:'flex', flexDirection:'column', borderLeft:`1px solid rgba(10,10,10,0.1)`, flexShrink:0 }}>
+                  <button onClick={()=>onMover(idx,-1)} disabled={idx===0}
+                    style={{ flex:1, padding:'0 8px', background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:idx===0?'default':'pointer', color:idx===0?'rgba(10,10,10,0.2)':T2, fontSize:10 }}>▲</button>
+                  <button onClick={()=>onMover(idx,1)} disabled={idx===cola.length-1}
+                    style={{ flex:1, padding:'0 8px', background:'none', border:'none', borderBottom:`1px solid rgba(10,10,10,0.08)`, cursor:idx===cola.length-1?'default':'pointer', color:idx===cola.length-1?'rgba(10,10,10,0.2)':T2, fontSize:10 }}>▼</button>
+                  <button onClick={()=>onQuitar(task.rowIndex)}
+                    style={{ flex:1, padding:'0 8px', background:'none', border:'none', cursor:'pointer', color:'#ff3d3d', fontSize:13, fontWeight:700 }}>×</button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer */}
+        {cola.length > 0 && (
+          <div style={{ padding:'12px 14px', borderTop:`1.5px solid ${INK}`, flexShrink:0 }}>
+            <button onClick={()=>onAbrirDetalle(cola[0])}
+              style={{ width:'100%', padding:'10px 0', background:INK, color:'#fffdf9', border:`1.5px solid ${INK}`, boxShadow:`2px 2px 0 rgba(10,10,10,0.3)`, fontFamily:SANS, fontSize:12, fontWeight:700, cursor:'pointer', letterSpacing:0.2 }}>
+              Abrir primera tarea →
+            </button>
+          </div>
+        )}
+      </motion.div>
+    </>
+  )
+}
+
 // ── Board components ────────────────────────────────────────────────────────
 
 function GroupHeaderRow({ nombre, tareas, collapsed, onToggle }) {
@@ -585,10 +682,11 @@ function BoardTaskCard({ task, indent, accentColor, accentTag }) {
   )
 }
 
-function DraggableTaskRow({ task, onOpenDetail, indent, accentColor, accentTag }) {
+function DraggableTaskRow({ task, onOpenDetail, indent, accentColor, accentTag, colaPos, onToggleCola }) {
   const { attributes, listeners, setNodeRef:setDragRef, isDragging } = useDraggable({ id:String(task.rowIndex) })
   const { setNodeRef:setDropRef, isOver } = useDroppable({ id:String(task.rowIndex) })
   const setRef = useCallback(node=>{ setDragRef(node); setDropRef(node) }, [setDragRef,setDropRef])
+  const enCola = colaPos !== undefined
 
   return (
     <motion.div layout
@@ -620,13 +718,31 @@ function DraggableTaskRow({ task, onOpenDetail, indent, accentColor, accentTag }
         <div style={{ flex:1, minWidth:0, cursor:'pointer' }} onClick={()=>onOpenDetail(task)}>
           <BoardTaskCard task={task} indent={indent} accentColor={accentColor} accentTag={accentTag} />
         </div>
+        {/* Cola badge */}
+        <button
+          onClick={e=>{ e.stopPropagation(); onToggleCola(task) }}
+          title={enCola ? `Quitar de cola (pos. ${colaPos+1})` : 'Agregar a cola'}
+          style={{
+            width:22, alignSelf:'stretch', flexShrink:0,
+            background: enCola ? INK : 'transparent',
+            color: enCola ? '#fffdf9' : 'rgba(10,10,10,0.18)',
+            border:'none', borderLeft:`1px solid rgba(10,10,10,0.08)`,
+            cursor:'pointer', fontFamily:MONO, fontSize:enCola?10:14, fontWeight:700,
+            display:'flex', alignItems:'center', justifyContent:'center',
+            transition:'background 0.12s, color 0.12s',
+          }}
+          onMouseEnter={e=>{ if (!enCola) { e.currentTarget.style.background='#f0f0f0'; e.currentTarget.style.color=INK } }}
+          onMouseLeave={e=>{ if (!enCola) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='rgba(10,10,10,0.18)' } }}
+        >
+          {enCola ? colaPos+1 : '+'}
+        </button>
       </div>
     </motion.div>
   )
 }
 
 // ── Kanban column ───────────────────────────────────────────────────────────
-function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHidden, collapsedGroups, onToggleCollapse, onOpenDetail, onNewTask }) {
+function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHidden, collapsedGroups, onToggleCollapse, onOpenDetail, onNewTask, cola, onToggleCola }) {
   const { setNodeRef, isOver } = useDroppable({ id:`priority:${prioridad}` })
   const { groups, ungrouped } = groupTasks(tasks)
   const { color: accent, tag: accentTag, dim: accentDim, sublabel } = ACCENT_MAP[prioridad]||{ color:T3, tag:'#f0f0f0', dim:'rgba(100,116,139,0.06)', sublabel:'' }
@@ -725,7 +841,9 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
               <AnimatePresence initial={false}>
                 {ungrouped.map(task => (
                   <DraggableTaskRow key={task.rowIndex} task={task} onOpenDetail={onOpenDetail}
-                    accentColor={accent} accentTag={accentTag} />
+                    accentColor={accent} accentTag={accentTag}
+                    colaPos={cola.findIndex(t=>t.rowIndex===task.rowIndex) >= 0 ? cola.findIndex(t=>t.rowIndex===task.rowIndex) : undefined}
+                    onToggleCola={onToggleCola} />
                 ))}
                 {Object.keys(groups).length>0 && <UngroupedDropZone />}
                 {Object.entries(groups).map(([nombre, tareas]) => {
@@ -736,7 +854,9 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
                       <AnimatePresence initial={false}>
                         {!collapsed && tareas.map(task => (
                           <DraggableTaskRow key={task.rowIndex} task={task} onOpenDetail={onOpenDetail}
-                            indent accentColor={accent} accentTag={accentTag} />
+                            indent accentColor={accent} accentTag={accentTag}
+                            colaPos={cola.findIndex(t=>t.rowIndex===task.rowIndex) >= 0 ? cola.findIndex(t=>t.rowIndex===task.rowIndex) : undefined}
+                            onToggleCola={onToggleCola} />
                         ))}
                       </AnimatePresence>
                     </Fragment>
@@ -764,7 +884,7 @@ function BoardColumn({ prioridad, tasks, isCollapsed, onToggleColumn, onToggleHi
 }
 
 // ── Board container ─────────────────────────────────────────────────────────
-function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onOpenDetail, collapsedColumns, onToggleColumn, hiddenColumns, onToggleHidden, onNewTask }) {
+function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onOpenDetail, collapsedColumns, onToggleColumn, hiddenColumns, onToggleHidden, onNewTask, cola, onToggleCola }) {
   const visible = BOARD_PRIORITIES.filter(p=>!hiddenColumns[p])
   return (
     <div style={{ flex:1, display:'flex', gap:14, padding:'16px 20px 20px', overflowX:'auto', overflowY:'auto', alignItems:'flex-start' }}>
@@ -781,6 +901,8 @@ function TareasBoard({ pendientes, collapsedGroups, onToggleCollapse, onOpenDeta
             onToggleCollapse={onToggleCollapse}
             onOpenDetail={onOpenDetail}
             onNewTask={onNewTask}
+            cola={cola}
+            onToggleCola={onToggleCola}
           />
         ))}
       </AnimatePresence>
@@ -890,6 +1012,27 @@ export default function Tareas() {
   const [activeId,setActiveId]             = useState(null)
   const [clockTime,setClockTime]           = useState(new Date())
   const [detailInfo,setDetailInfo]         = useState(null)
+  const [cola,setCola]                     = useState([])
+  const [colaAbierta,setColaAbierta]       = useState(false)
+
+  function toggleEnCola(task) {
+    setCola(prev => {
+      const idx = prev.findIndex(t=>t.rowIndex===task.rowIndex)
+      return idx >= 0 ? prev.filter(t=>t.rowIndex!==task.rowIndex) : [...prev, task]
+    })
+  }
+  function moverEnCola(idx, dir) {
+    setCola(prev => {
+      const next = [...prev]
+      const newIdx = idx + dir
+      if (newIdx < 0 || newIdx >= next.length) return prev
+      ;[next[idx], next[newIdx]] = [next[newIdx], next[idx]]
+      return next
+    })
+  }
+  function quitarDeCola(rowIndex) {
+    setCola(prev => prev.filter(t=>t.rowIndex!==rowIndex))
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint:{ distance:4 } }))
 
@@ -1181,6 +1324,13 @@ export default function Tareas() {
               style={{ padding:'4px 13px', background:'#ff3d3d', color:'#fff', fontSize:10 }}>
               + Nueva tarea
             </NbBtn>
+            <button onClick={()=>setColaAbierta(true)}
+              style={{ position:'relative', padding:'4px 12px', background: cola.length>0 ? INK : '#fffdf9', color: cola.length>0 ? '#fffdf9' : T2, border:`1.5px solid ${INK}`, boxShadow:`1.5px 1.5px 0 ${INK}`, fontFamily:SANS, fontSize:10, fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:5 }}>
+              ☰ Cola
+              {cola.length > 0 && (
+                <span style={{ background:'#ff3d3d', color:'#fff', fontFamily:MONO, fontSize:9, padding:'0 5px', border:`1px solid rgba(255,255,255,0.3)`, lineHeight:'16px' }}>{cola.length}</span>
+              )}
+            </button>
           </div>
           {lastSyncText && (
             <span style={{ fontFamily:MONO, fontSize:9, color:T3, display:'inline-flex', alignItems:'center', gap:4 }}>
@@ -1239,6 +1389,8 @@ export default function Tareas() {
             hiddenColumns={hiddenColumns}
             onToggleHidden={toggleHidden}
             onNewTask={()=>setShowNewTask(true)}
+            cola={cola}
+            onToggleCola={toggleEnCola}
           />
           <DragOverlay dropAnimation={{duration:180,easing:'ease'}}>
             {activeId ? (()=>{
@@ -1337,6 +1489,18 @@ export default function Tareas() {
       </AnimatePresence>
 
       {showNewTask && <NuevaTareaModal onClose={()=>setShowNewTask(false)} onCreated={()=>{ setShowNewTask(false); fetchAll() }} />}
+
+      <AnimatePresence>
+        {colaAbierta && (
+          <ColaPanel
+            cola={cola}
+            onClose={()=>setColaAbierta(false)}
+            onMover={moverEnCola}
+            onQuitar={quitarDeCola}
+            onAbrirDetalle={task=>{ setColaAbierta(false); setDetailInfo({rowIndex:task.rowIndex,source:'pendientes'}) }}
+          />
+        )}
+      </AnimatePresence>
 
       {editTask && <TareaFormModal title="Editar tarea" initial={editTask} onClose={()=>setEditTask(null)} onSave={handleEdit} />}
 
